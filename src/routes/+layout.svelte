@@ -14,15 +14,11 @@
 		: undefined;
 </script>
 
-{#if persister}
-	<PersistQueryClientProvider
-		client={data.queryClient}
-		persistOptions={{ persister }}
-		on:success={() => console.log('internet on - restored')}
-	>
-		<slot />
-		<SvelteQueryDevtools />
-	</PersistQueryClientProvider>
-{:else}
+<PersistQueryClientProvider
+	client={data.queryClient}
+	persistOptions={{ persister }}
+	on:success={() => console.log('internet on - restored')}
+>
 	<slot />
-{/if}
+	<SvelteQueryDevtools />
+</PersistQueryClientProvider>
