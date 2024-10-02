@@ -2,9 +2,10 @@
 	import { onMount } from 'svelte';
 	import { createShapeStore, type ShapeStoreData } from '$lib/electric-store';
 
-	export let data;
+	const shapeStore = createShapeStore({
+		url: 'http://localhost:3000/v1/shape/items'
+	});
 
-	const shapeStore = createShapeStore(data.shapeOptions);
 	let shapeData: ShapeStoreData = {
 		data: [],
 		isLoading: true,
