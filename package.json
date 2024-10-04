@@ -10,14 +10,13 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"lint": "prettier --check . && eslint .",
 		"format": "prettier --write .",
-		"backend:up": "PROJECT_NAME=sveltekit-tanstack-electric bun run example-backend:up && bun run db:migrate",
+		"backend:up": "PROJECT_NAME=sveltekit-tanstack-electric bun run example-backend:up && bun run migrate",
+		"backend:down": "PROJECT_NAME=sveltekit-tanstack-electric bun run example-backend:down",
 		"example-backend:up": "dotenv -e .env.dev -- docker compose -f ./.support/docker-compose.yml up -d",
 		"example-backend:down": "dotenv  -e .env.dev -- docker compose -f .support/docker-compose.yml down --volumes",
-		"backend:down": "PROJECT_NAME=sveltekit-tanstack-electric bun run example-backend:down",
-		"db:migrate": "dotenv -e .env.dev -- bunx pg-migrations apply --directory ./db/migrations",
-		"reset": "bun example-backend:down && bun example-backend:up && bun db:migrate",
 		"generate": "drizzle-kit generate",
-		"migrate": "drizzle-kit migrate"
+		"migrate": "drizzle-kit migrate",
+		"prepare": "husky"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^3.0.0",
@@ -36,6 +35,7 @@
 		"eslint-config-prettier": "^9.1.0",
 		"eslint-plugin-svelte": "^2.36.0",
 		"globals": "^15.0.0",
+		"husky": "^9.1.6",
 		"prettier": "^3.1.1",
 		"prettier-plugin-svelte": "^3.1.2",
 		"prettier-plugin-tailwindcss": "^0.6.5",

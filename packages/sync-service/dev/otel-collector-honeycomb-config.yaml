@@ -19,7 +19,7 @@ receivers:
         - job_name: otel-prometheus
           scrape_interval: 5s
           static_configs:
-            - targets: ["${env:PROMETHEUS_SCRAPE_ENDPOINT}"]
+            - targets: ['${env:PROMETHEUS_SCRAPE_ENDPOINT}']
 processors:
   resourcedetection:
     detectors:
