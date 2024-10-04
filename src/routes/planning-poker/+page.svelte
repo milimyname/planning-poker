@@ -9,7 +9,7 @@
 	type Game = { id: string };
 
 	const baseUrl = import.meta.env.ELECTRIC_URL ?? `http://localhost:3000`;
-	const baseApiUrl = `http://localhost:5173/api`;
+	const baseApiUrl = `http://localhost:5173/api/shapes`;
 
 	const gameShape = () => ({
 		url: new URL(`/v1/shape/games`, baseUrl).href

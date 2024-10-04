@@ -27,7 +27,7 @@ export interface ShapeStoreData<T extends Row = Row> {
 	data: T[];
 	isLoading: boolean;
 	lastSyncedAt?: number;
-	error: any;
+	error: Error | null | Shape['error'];
 }
 
 export function createShapeStore<T extends Row = Row>(
