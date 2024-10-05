@@ -8,6 +8,20 @@
 			"when": 1728006262261,
 			"tag": "0000_workable_corsair",
 			"breakpoints": true
+		},
+		{
+			"idx": 1,
+			"version": "7",
+			"when": 1728163560426,
+			"tag": "0001_fantastic_warbird",
+			"breakpoints": true
+		},
+		{
+			"idx": 2,
+			"version": "7",
+			"when": 1728163701573,
+			"tag": "0002_nappy_hellcat",
+			"breakpoints": true
 		}
 	]
 }

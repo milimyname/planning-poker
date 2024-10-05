@@ -1,12 +1,11 @@
 import { db } from '$lib/server/db';
-import { gamesTable } from '$lib/server/schema';
+import { games, players } from '$lib/server/schema';
 import { json } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 
 const shapeMap = {
-	games: gamesTable
-	// Add other shapes here, e.g.:
-	// players: players,
+	games,
+	players
 };
 
 export const POST = async ({ params, request }) => {

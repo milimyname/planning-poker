@@ -4,6 +4,7 @@
 	import PersistQueryClientProvider from '$lib/tanstack/persist-query-client-provider.svelte';
 	import { SvelteQueryDevtools } from '@tanstack/svelte-query-devtools';
 	import { browser } from '$app/environment';
+	import { Toaster } from '$lib/components/ui/sonner';
 
 	export let data;
 
@@ -13,6 +14,8 @@
 			})
 		: undefined;
 </script>
+
+<Toaster />
 
 <PersistQueryClientProvider
 	client={data.queryClient}
