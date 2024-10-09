@@ -26,7 +26,6 @@ export async function createPlayer(player: InsertPlayer) {
 export async function clearInvitees(player: InsertPlayer) {
 	const playersStream = getShapeStream<InsertPlayer>(playerSchema());
 
-	console.log('clearInvitees', player);
 	const streamPromise = matchStream({
 		stream: playersStream,
 		operations: ['delete'],

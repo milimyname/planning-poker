@@ -2,7 +2,7 @@
 	import { createShapeStore, type ShapeStoreData } from '$lib/electric-store';
 	import { createMutation, useQueryClient } from '@tanstack/svelte-query';
 	import { onMount } from 'svelte';
-	import { derived, writable } from 'svelte/store';
+	import { writable } from 'svelte/store';
 	import { playerSchema, clearInvitees } from '$lib/electric-actions/player';
 	import {
 		type InsertVote,
@@ -114,6 +114,11 @@
 			}
 		});
 	}
+
+	$: isCreator = playerGames.some(
+		(pg) =>
+			pg.player_id === data?.currentPlayer.id && pg.is_creator && pg.game_id === $page.params.slug
+	);
 </script>
 
 <p>Network status: {isOnline ? 'Online' : 'Offline'}</p>
@@ -126,7 +131,7 @@
 		<p>Error: {error}</p>
 	{:else}
 		<ul>
-			{#each combinedPlayerGamesStore as playerGame (playerGame.playerId)}
+			{#each combinedPlayerGamesStore as playerGame}
 				<li>{playerGame.player?.name}</li>
 			{/each}
 		</ul>
@@ -136,13 +141,14 @@
 <div>
 	<h2>Actions</h2>
 	<Button on:click={invitePlayer}>Invite new Player</Button>
-	<Button
-		variant="destructive"
-		on:click={() => {
-			console.log('Clearing Players', data);
-			$clearInviteesMutation.mutate(data.currentPlayer);
-		}}
-	>
-		Clear Players
-	</Button>
+	{#if isCreator}
+		<Button
+			variant="destructive"
+			on:click={() => {
+				$clearInviteesMutation.mutate(data.currentPlayer);
+			}}
+		>
+			Clear Players
+		</Button>
+	{/if}
 </div>

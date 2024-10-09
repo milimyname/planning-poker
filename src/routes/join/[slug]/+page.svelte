@@ -7,45 +7,20 @@
 	import { toast } from 'svelte-sonner';
 	import * as Form from '$lib/components/ui/form';
 	import { insertPlayerSchema, type InsertPlayer } from '$lib/validators';
-	import { clearGames } from '$lib/electric-actions/game';
 	import { createPlayer } from '$lib/electric-actions/player';
-	import { writable } from 'svelte/store';
-	import { createMutation, useQueryClient } from '@tanstack/svelte-query';
+	import { createMutation } from '@tanstack/svelte-query';
 	import { v4 as uuidv4 } from 'uuid';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
+	import { createPlayerGame } from '$lib/electric-actions/playerGames.js';
 
 	export let data;
 
-	const queryClient = useQueryClient();
-
-	let isOnline = true;
-	let open = false;
-
 	let slug = $page.params.slug;
-
-	const pendingMutations = writable<Map<string, InsertPlayer>>(new Map());
-
-	onMount(() => {
-		isOnline = navigator.onLine;
-		window.addEventListener('online', () => {
-			isOnline = true;
-			queryClient.resumePausedMutations();
-		});
-		window.addEventListener('offline', () => (isOnline = false));
-	});
 
 	const addPlayerMutation = createMutation({
 		mutationFn: (newPlayer: InsertPlayer) => createPlayer(newPlayer),
 		mutationKey: ['add-player']
-	});
-
-	const clearGamesMutation = createMutation({
-		mutationKey: ['clearGames'],
-		mutationFn: clearGames,
-		onMutate: () => {
-			pendingMutations.set(new Map());
-		}
 	});
 
 	const form = superForm(data.form, {
@@ -60,14 +35,28 @@
 
 			toast.success(`You have joined the game as ${f.data.name}.`);
 
-			$addPlayerMutation.mutate({
+			const newInvitee = await $addPlayerMutation.mutateAsync({
 				id: uuidv4(),
 				gameId: slug,
 				name: f.data.name
 			});
 
+			localStorage.setItem('currentPlayer', JSON.stringify(newInvitee[0].value));
+
+			createPlayerGame({
+				gameId: slug,
+				playerId: newInvitee[0].value.id
+			});
+
 			goto(`/game/${slug}`);
 		}
+	});
+
+	onMount(() => {
+		// Focus name input on load
+		const nameInput = document.querySelector('input[name="name"]') as HTMLInputElement;
+
+		if (nameInput) nameInput.focus();
 	});
 
 	const { form: formData, enhance } = form;

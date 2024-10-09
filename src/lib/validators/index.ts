@@ -19,7 +19,8 @@ export type InsertGame = z.infer<typeof insertGameSchema> & Row;
 export const playerSchema = z.object({
 	id: z.string().uuid(),
 	name: z.string().min(1),
-	joinedAt: z.date()
+	joinedAt: z.date(),
+	gameId: z.string().uuid().optional() // TODO: remove later
 });
 
 export type Player = z.infer<typeof playerSchema> & Row;

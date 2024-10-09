@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, setContext } from 'svelte';
+	import { onMount } from 'svelte';
 	import { createShapeStore, type ShapeStoreData } from '$lib/electric-store';
 	import { Button, buttonVariants } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
@@ -7,7 +7,7 @@
 	import SuperDebug, { superForm } from 'sveltekit-superforms';
 	import { zodClient } from 'sveltekit-superforms/adapters';
 	import { toast } from 'svelte-sonner';
-	import { browser } from '$app/environment';
+	import { browser, dev } from '$app/environment';
 	import * as Form from '$lib/components/ui/form';
 	import * as Select from '$lib/components/ui/select';
 	import { insertGameSchema, type InsertGame, type InsertPlayer } from '$lib/validators';
@@ -109,8 +109,6 @@
 				id: uuidv4(),
 				name: f.data.playerName
 			});
-
-			console.log(newPlayer);
 
 			localStorage.setItem('currentPlayer', JSON.stringify(newPlayer[0].value));
 
@@ -214,7 +212,7 @@
 
 					<Form.FieldErrors />
 				</Form.Field>
-				{#if browser}
+				{#if browser && dev}
 					<SuperDebug data={$formData} />
 				{/if}
 				<Dialog.Footer>
