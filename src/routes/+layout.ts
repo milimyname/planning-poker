@@ -11,5 +11,8 @@ export async function load() {
 		}
 	});
 
-	return { queryClient };
+	return {
+		queryClient,
+		currentPlayer: browser ? JSON.parse(localStorage.getItem('currentPlayer') || 'null') : null
+	};
 }

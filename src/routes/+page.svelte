@@ -1,20 +1,22 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, setContext } from 'svelte';
 	import { createShapeStore, type ShapeStoreData } from '$lib/electric-store';
 	import { Button, buttonVariants } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
 	import SuperDebug, { superForm } from 'sveltekit-superforms';
 	import { zodClient } from 'sveltekit-superforms/adapters';
 	import { toast } from 'svelte-sonner';
 	import { browser } from '$app/environment';
 	import * as Form from '$lib/components/ui/form';
 	import * as Select from '$lib/components/ui/select';
-	import { insertGameSchema, type InsertGame } from '$lib/validators';
-	import { createGame } from '$lib/electric-actions/game';
+	import { insertGameSchema, type InsertGame, type InsertPlayer } from '$lib/validators';
+	import { createGame, clearGames } from '$lib/electric-actions/game';
+	import { createPlayer } from '$lib/electric-actions/player';
 	import { writable } from 'svelte/store';
 	import { createMutation, useQueryClient } from '@tanstack/svelte-query';
+	import { v4 as uuidv4 } from 'uuid';
+	import { goto } from '$app/navigation';
 
 	export let data;
 
@@ -33,6 +35,7 @@
 	$: ({ data: items, isLoading, error } = shapeData);
 
 	let isOnline = true;
+	let open = false;
 
 	const pendingMutations = writable<Map<string, InsertGame>>(new Map());
 
@@ -62,13 +65,14 @@
 
 	const addGameMutation = createMutation({
 		mutationFn: (newGame: InsertGame) => createGame(newGame),
+		mutationKey: ['add-game'],
 		onMutate: (newGame) => {
 			pendingMutations.update((pending) => {
 				pending.set(newGame.id, newGame);
 				return pending;
 			});
 		},
-		onSettled: (variables) => {
+		onSettled: (data, error, variables, context) => {
 			pendingMutations.update((pending) => {
 				pending.delete(variables.id);
 				return pending;
@@ -76,20 +80,50 @@
 		}
 	});
 
+	const addPlayerMutation = createMutation({
+		mutationFn: (newPlayer: InsertPlayer) => createPlayer(newPlayer),
+		mutationKey: ['add-player']
+	});
+
+	const clearGamesMutation = createMutation({
+		mutationKey: ['clearGames'],
+		mutationFn: clearGames,
+		onMutate: () => {
+			pendingMutations.set(new Map());
+		}
+	});
+
 	const form = superForm(data.form, {
 		SPA: true,
 		validators: zodClient(insertGameSchema),
-		onUpdated: ({ form: f }) => {
-			if (f.valid) {
-				toast.success(`You submitted ${JSON.stringify(f.data, null, 2)}`);
-				$addGameMutation.mutate({
-					name: f.data.name,
-					cards: f.data.cards,
-					status: 'voting'
-				});
-			} else {
+		resetForm: true,
+		onUpdated: async ({ form: f }) => {
+			if (!f.valid) {
 				toast.error('Please fix the errors in the form.');
+				return;
 			}
+
+			toast.success(`You created a new session: ${f.data.name}`);
+
+			const newPlayer = await $addPlayerMutation.mutateAsync({
+				id: uuidv4(),
+				name: f.data.playerName
+			});
+
+			console.log(newPlayer);
+
+			localStorage.setItem('currentPlayer', JSON.stringify(newPlayer[0].value));
+
+			const newGame = await $addGameMutation.mutateAsync({
+				id: uuidv4(),
+				name: f.data.name,
+				cards: '1,2,3,5,8,13',
+				status: 'voting',
+				playerName: f.data.playerName, // not needed
+				creatorId: newPlayer[0].value.id
+			});
+
+			goto(`/game/${newGame[0].value.id}`);
 		}
 	});
 
@@ -101,6 +135,8 @@
 				value: $formData.cards
 			}
 		: undefined;
+
+	$: if (open) $formData.id = uuidv4();
 </script>
 
 {#if isLoading}
@@ -115,13 +151,24 @@
 	</ul>
 {/if}
 
-<Dialog.Root>
+<Dialog.Root bind:open>
 	<div class="grid h-screen w-full place-content-center">
-		<Dialog.Trigger class={buttonVariants({ variant: 'outline' })}>
-			Create a new session
-		</Dialog.Trigger>
+		<div class="flex gap-2">
+			<Dialog.Trigger class={buttonVariants({ variant: 'outline' })}>
+				Create a new session
+			</Dialog.Trigger>
+			<Button
+				variant="destructive"
+				on:click={() => {
+					$clearGamesMutation.mutate();
+					localStorage.removeItem('currentUser');
+				}}
+			>
+				Clear all
+			</Button>
+		</div>
 	</div>
-	<Dialog.Content class="sm:max-w-[425px]">
+	<Dialog.Content class="sm:max-w-xl">
 		<Dialog.Header>
 			<Dialog.Title>Create a new session</Dialog.Title>
 			<Dialog.Description>
@@ -132,8 +179,16 @@
 			<form method="POST" class="w-2/3 space-y-6" use:enhance>
 				<Form.Field {form} name="name">
 					<Form.Control let:attrs>
-						<Form.Label>Name</Form.Label>
+						<Form.Label>Session Name</Form.Label>
 						<Input {...attrs} bind:value={$formData.name} />
+					</Form.Control>
+					<Form.FieldErrors />
+				</Form.Field>
+
+				<Form.Field {form} name="playerName">
+					<Form.Control let:attrs>
+						<Form.Label>Your Name</Form.Label>
+						<Input {...attrs} bind:value={$formData.playerName} />
 					</Form.Control>
 					<Form.FieldErrors />
 				</Form.Field>
@@ -159,14 +214,13 @@
 
 					<Form.FieldErrors />
 				</Form.Field>
-				<Form.Button>Submit</Form.Button>
 				{#if browser}
 					<SuperDebug data={$formData} />
 				{/if}
+				<Dialog.Footer>
+					<Form.Button>Save changes</Form.Button>
+				</Dialog.Footer>
 			</form>
 		</div>
-		<Dialog.Footer>
-			<Button type="submit">Save changes</Button>
-		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>

@@ -16,7 +16,8 @@
 		"example-backend:down": "dotenv  -e .env.dev -- docker compose -f .support/docker-compose.yml down --volumes",
 		"generate": "drizzle-kit generate",
 		"migrate": "drizzle-kit migrate",
-		"prepare": "husky"
+		"prepare": "husky",
+		"studio": "bunx drizzle-kit studio"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^3.0.0",

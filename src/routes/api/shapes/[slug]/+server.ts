@@ -1,11 +1,12 @@
 import { db } from '$lib/server/db';
-import { games, players } from '$lib/server/schema';
+import { games, players, playerGames } from '$lib/server/schema';
 import { json } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 
 const shapeMap = {
 	games,
-	players
+	players,
+	playerGames
 };
 
 export const POST = async ({ params, request }) => {
@@ -17,11 +18,28 @@ export const POST = async ({ params, request }) => {
 	const body = await request.json();
 
 	try {
-		const result = await db.insert(shape).values(body).returning();
-		return json({ message: `${slug} added`, data: result[0] }, { status: 200 });
+		let result;
+
+		await db.transaction(async (tx) => {
+			[result] = await tx.insert(shape).values(body).returning();
+
+			switch (slug) {
+				case 'games':
+					if (!body.creatorId) throw new Error('creatorId is required for creating a game');
+
+					await tx.insert(playerGames).values({
+						playerId: body.creatorId,
+						gameId: result.id,
+						isCreator: true
+					});
+					break;
+			}
+		});
+
+		return json({ message: `${slug} added`, data: result }, { status: 200 });
 	} catch (error) {
 		console.error(`Error adding ${slug}:`, error);
-		return json({ error: `Failed to add ${slug}` }, { status: 500 });
+		return json({ error: `Failed to add ${slug}: ${error.message}` }, { status: 500 });
 	}
 };
 
