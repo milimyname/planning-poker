@@ -1,0 +1,249 @@
+{
+	"id": "69b4855c-d557-4096-aae8-cb66b244d995",
+	"prevId": "a9b1e04c-6bd5-4985-acd5-dbe52950b29c",
+	"version": "7",
+	"dialect": "postgresql",
+	"tables": {
+		"public.games": {
+			"name": "games",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "uuid",
+					"primaryKey": true,
+					"notNull": true,
+					"default": "gen_random_uuid()"
+				},
+				"name": {
+					"name": "name",
+					"type": "varchar(255)",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				},
+				"cards": {
+					"name": "cards",
+					"type": "varchar(255)",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"voting": {
+					"name": "voting",
+					"type": "status",
+					"typeSchema": "public",
+					"primaryKey": false,
+					"notNull": false
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {}
+		},
+		"public.items": {
+			"name": "items",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "uuid",
+					"primaryKey": true,
+					"notNull": true,
+					"default": "gen_random_uuid()"
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {}
+		},
+		"public.playerGames": {
+			"name": "playerGames",
+			"schema": "",
+			"columns": {
+				"player_id": {
+					"name": "player_id",
+					"type": "uuid",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"game_id": {
+					"name": "game_id",
+					"type": "uuid",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"is_creator": {
+					"name": "is_creator",
+					"type": "boolean",
+					"primaryKey": false,
+					"notNull": true,
+					"default": false
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {
+				"playerGames_player_id_players_id_fk": {
+					"name": "playerGames_player_id_players_id_fk",
+					"tableFrom": "playerGames",
+					"tableTo": "players",
+					"columnsFrom": ["player_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				},
+				"playerGames_game_id_games_id_fk": {
+					"name": "playerGames_game_id_games_id_fk",
+					"tableFrom": "playerGames",
+					"tableTo": "games",
+					"columnsFrom": ["game_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {}
+		},
+		"public.players": {
+			"name": "players",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "uuid",
+					"primaryKey": true,
+					"notNull": true,
+					"default": "gen_random_uuid()"
+				},
+				"name": {
+					"name": "name",
+					"type": "varchar(255)",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"joined_at": {
+					"name": "joined_at",
+					"type": "timestamp",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				},
+				"updated_at": {
+					"name": "updated_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {}
+		},
+		"public.votes": {
+			"name": "votes",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "uuid",
+					"primaryKey": true,
+					"notNull": true,
+					"default": "gen_random_uuid()"
+				},
+				"game_id": {
+					"name": "game_id",
+					"type": "uuid",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"player_id": {
+					"name": "player_id",
+					"type": "uuid",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"estimate": {
+					"name": "estimate",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"voted_at": {
+					"name": "voted_at",
+					"type": "timestamp",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				},
+				"updated_at": {
+					"name": "updated_at",
+					"type": "timestamp with time zone",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {
+				"votes_game_id_games_id_fk": {
+					"name": "votes_game_id_games_id_fk",
+					"tableFrom": "votes",
+					"tableTo": "games",
+					"columnsFrom": ["game_id"],
+					"columnsTo": ["id"],
+					"onDelete": "no action",
+					"onUpdate": "no action"
+				},
+				"votes_player_id_players_id_fk": {
+					"name": "votes_player_id_players_id_fk",
+					"tableFrom": "votes",
+					"tableTo": "players",
+					"columnsFrom": ["player_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {}
+		}
+	},
+	"enums": {
+		"public.status": {
+			"name": "status",
+			"schema": "public",
+			"values": ["voting", "revealed", "completed"]
+		}
+	},
+	"schemas": {},
+	"sequences": {},
+	"_meta": {
+		"columns": {},
+		"schemas": {},
+		"tables": {}
+	}
+}

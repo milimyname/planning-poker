@@ -22,6 +22,55 @@
 			"when": 1728163701573,
 			"tag": "0002_nappy_hellcat",
 			"breakpoints": true
+		},
+		{
+			"idx": 3,
+			"version": "7",
+			"when": 1728426366407,
+			"tag": "0003_wonderful_crusher_hogan",
+			"breakpoints": true
+		},
+		{
+			"idx": 4,
+			"version": "7",
+			"when": 1728428576823,
+			"tag": "0004_brief_mockingbird",
+			"breakpoints": true
+		},
+		{
+			"idx": 5,
+			"version": "7",
+			"when": 1728429557770,
+			"tag": "0005_lame_vargas",
+			"breakpoints": true
+		},
+		{
+			"idx": 6,
+			"version": "7",
+			"when": 1728433373696,
+			"tag": "0006_next_toad",
+			"breakpoints": true
+		},
+		{
+			"idx": 7,
+			"version": "7",
+			"when": 1728434564361,
+			"tag": "0007_ancient_master_mold",
+			"breakpoints": true
+		},
+		{
+			"idx": 8,
+			"version": "7",
+			"when": 1728434661445,
+			"tag": "0008_high_epoch",
+			"breakpoints": true
+		},
+		{
+			"idx": 9,
+			"version": "7",
+			"when": 1728434828532,
+			"tag": "0009_smooth_vulcan",
+			"breakpoints": true
 		}
 	]
 }

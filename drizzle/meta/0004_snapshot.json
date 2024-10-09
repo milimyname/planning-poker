@@ -1,0 +1,195 @@
+{
+	"id": "6c105955-13e6-43e4-afff-0101b3fd1dca",
+	"prevId": "80edc4d1-fc2e-475c-b5b9-ac6559841082",
+	"version": "7",
+	"dialect": "postgresql",
+	"tables": {
+		"public.games": {
+			"name": "games",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "uuid",
+					"primaryKey": true,
+					"notNull": true,
+					"default": "gen_random_uuid()"
+				},
+				"name": {
+					"name": "name",
+					"type": "varchar(255)",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"created_at": {
+					"name": "created_at",
+					"type": "timestamp",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				},
+				"cards": {
+					"name": "cards",
+					"type": "varchar(255)",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"voting": {
+					"name": "voting",
+					"type": "status",
+					"typeSchema": "public",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"creator_id": {
+					"name": "creator_id",
+					"type": "uuid",
+					"primaryKey": false,
+					"notNull": true
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {}
+		},
+		"public.items": {
+			"name": "items",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "uuid",
+					"primaryKey": true,
+					"notNull": true,
+					"default": "gen_random_uuid()"
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {}
+		},
+		"public.players": {
+			"name": "players",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "uuid",
+					"primaryKey": true,
+					"notNull": true,
+					"default": "gen_random_uuid()"
+				},
+				"game_id": {
+					"name": "game_id",
+					"type": "uuid",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"name": {
+					"name": "name",
+					"type": "varchar(255)",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"joined_at": {
+					"name": "joined_at",
+					"type": "timestamp",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {
+				"players_game_id_games_id_fk": {
+					"name": "players_game_id_games_id_fk",
+					"tableFrom": "players",
+					"tableTo": "games",
+					"columnsFrom": ["game_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {}
+		},
+		"public.votes": {
+			"name": "votes",
+			"schema": "",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "uuid",
+					"primaryKey": true,
+					"notNull": true,
+					"default": "gen_random_uuid()"
+				},
+				"game_id": {
+					"name": "game_id",
+					"type": "uuid",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"player_id": {
+					"name": "player_id",
+					"type": "uuid",
+					"primaryKey": false,
+					"notNull": true
+				},
+				"estimate": {
+					"name": "estimate",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false
+				},
+				"voted_at": {
+					"name": "voted_at",
+					"type": "timestamp",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "now()"
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {
+				"votes_game_id_games_id_fk": {
+					"name": "votes_game_id_games_id_fk",
+					"tableFrom": "votes",
+					"tableTo": "games",
+					"columnsFrom": ["game_id"],
+					"columnsTo": ["id"],
+					"onDelete": "no action",
+					"onUpdate": "no action"
+				},
+				"votes_player_id_players_id_fk": {
+					"name": "votes_player_id_players_id_fk",
+					"tableFrom": "votes",
+					"tableTo": "players",
+					"columnsFrom": ["player_id"],
+					"columnsTo": ["id"],
+					"onDelete": "cascade",
+					"onUpdate": "no action"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {}
+		}
+	},
+	"enums": {
+		"public.status": {
+			"name": "status",
+			"schema": "public",
+			"values": ["voting", "revealed", "completed"]
+		}
+	},
+	"schemas": {},
+	"sequences": {},
+	"_meta": {
+		"columns": {},
+		"schemas": {},
+		"tables": {}
+	}
+}
