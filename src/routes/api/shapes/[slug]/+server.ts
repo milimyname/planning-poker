@@ -1,12 +1,14 @@
 import { db } from '$lib/server/db';
-import { games, players, playerGames } from '$lib/server/schema';
+import { games, players, playerGames, votes, sessions } from '$lib/server/schema';
 import { json } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 
 const shapeMap = {
 	games,
 	players,
-	playerGames
+	playerGames,
+	votes,
+	sessions
 };
 
 export const POST = async ({ params, request }) => {
@@ -19,6 +21,8 @@ export const POST = async ({ params, request }) => {
 
 	try {
 		let result;
+
+		console.log('Adding', slug, 'with body:', body);
 
 		await db.transaction(async (tx) => {
 			[result] = await tx.insert(shape).values(body).returning();
@@ -33,6 +37,13 @@ export const POST = async ({ params, request }) => {
 						isCreator: true
 					});
 					break;
+				// case 'votes':
+				// 	if (!body.sessionId) throw new Error('sessionId is required for creating a vote');
+				// 	if (!body.playerId) throw new Error('playerId is required for creating a vote');
+
+				// 	await tx.insert(sessions).values({ id: body.sessionId, gameId: body.gameId });
+				// 	await tx.insert(players).values({ id: body.playerId, name: body.playerName });
+				// 	break;
 			}
 		});
 

@@ -3,14 +3,17 @@ import { matchStream } from '$lib/match-stream';
 import { type InsertPlayerGame } from '$lib/validators';
 import { BASE_URL, BASE_API_URL } from '$lib/constants';
 
-export const gameShape = () => ({
+export const playerGamesShape = () => ({
 	url: new URL(`/v1/shape/player_games`, BASE_URL).href
 });
 
-export async function createPlayerGame(playerGame: InsertPlayerGame) {
-	const playerGamesStream = getShapeStream<InsertPlayerGame>(gameShape());
+export const playerGamesWithWhereSchema = (id: string) => ({
+	url: new URL('/v1/shape/player_games', BASE_URL).href,
+	where: `game_id='${id}'`
+});
 
-	console.log('playerGame', playerGame);
+export async function createPlayerGame(playerGame: InsertPlayerGame) {
+	const playerGamesStream = getShapeStream<InsertPlayerGame>(playerGamesShape());
 
 	const findUpdatePromise = matchStream({
 		stream: playerGamesStream,

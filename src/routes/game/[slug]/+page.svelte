@@ -3,30 +3,39 @@
 	import { createMutation, useQueryClient } from '@tanstack/svelte-query';
 	import { onMount } from 'svelte';
 	import { writable } from 'svelte/store';
-	import { playerSchema, clearInvitees } from '$lib/electric-actions/player';
+	import { playerShape, clearInvitees } from '$lib/electric-actions/player';
 	import {
 		type InsertVote,
 		type Player,
 		type InsertPlayer,
-		type PlayerGames
+		type PlayerGames,
+		type Game,
+		type InsertSession,
+		type Session
 	} from '$lib/validators';
 	import { Button } from '$lib/components/ui/button';
 	import { page } from '$app/stores';
 	import { toast } from 'svelte-sonner';
-	import { BASE_URL } from '$lib/constants.js';
+	import * as Card from '$lib/components/ui/card';
+	import { playerGamesWithWhereSchema } from '$lib/electric-actions/playerGames';
+	import { gameShape } from '$lib/electric-actions/game';
+	import { createVote, updateVote, voteShape } from '$lib/electric-actions/vote';
+	import { v4 as uuidv4 } from 'uuid';
+	import { createSession, sessionShape, updateSession } from '$lib/electric-actions/session.js';
+	import { cn } from '$lib/utils';
+	import { late } from 'zod';
 
 	export let data;
 
 	const queryClient = useQueryClient();
 
-	const playerGamesSchema = () => ({
-		url: new URL('/v1/shape/player_games', BASE_URL).href,
-		where: `game_id='${$page.params.slug}'`
-	});
-
-	const shapePlayerStore = createShapeStore<Player>(playerSchema());
-
-	const shapePlayerGamesSchema = createShapeStore<PlayerGames>(playerGamesSchema());
+	const shapePlayerStore = createShapeStore<Player>(playerShape());
+	const shapePlayerGamesStore = createShapeStore<PlayerGames>(
+		playerGamesWithWhereSchema($page.params.slug)
+	);
+	const shapeGameStore = createShapeStore<Game>(gameShape());
+	const shapeSessionStore = createShapeStore<Session>(sessionShape());
+	const shapeVoteStore = createShapeStore<InsertVote>(voteShape());
 
 	let shapePlayerData: ShapeStoreData<Player> = {
 		data: [],
@@ -40,6 +49,27 @@
 		error: null
 	};
 
+	let shapeGameData: ShapeStoreData<Game> = {
+		data: [],
+		isLoading: true,
+		error: null
+	};
+
+	let shapeSessionData: ShapeStoreData<Session> = {
+		data: [],
+		isLoading: true,
+		error: null
+	};
+
+	let shapeVoteData: ShapeStoreData<InsertVote> = {
+		data: [],
+		isLoading: true,
+		error: null
+	};
+
+	let isOnline = true;
+	const pendingMutations = writable<Map<string, InsertVote>>(new Map());
+
 	// Reactive variables for players and playerGames
 	$: ({ data: players, isLoading: playersLoading, error: playersError } = shapePlayerData);
 	$: ({
@@ -47,31 +77,76 @@
 		isLoading: playerGamesLoading,
 		error: playerGamesError
 	} = shapePlayerGamesData);
+	$: ({ data: games, isLoading: gameLoading, error: gameError } = shapeGameData);
+	$: ({ data: sessions } = shapeSessionData);
+	$: ({ data: votes } = shapeVoteData);
 
-	$: combinedPlayerGamesStore = playerGames.map((pg) => ({
-		...pg,
-		player: players.find((p) => p.id === pg.player_id)
-	}));
+	const combinedPlayerGamesStore = writable([]);
 
-	$: error = playersError || playerGamesError;
-	$: isLoading = playersLoading || playerGamesLoading;
+	$: $combinedPlayerGamesStore = playerGames?.map((pg) => {
+		return {
+			...pg,
+			player: players.find((p) => p.id === pg.player_id),
+			game: games.find((g) => g.id === pg.game_id),
+			sessions: sessions.filter((s) => s.game_id === pg.game_id),
+			activeVote: votes.find(
+				(v) => v.session_id === latestSession?.id && v.player_id === pg.player_id
+			)
+		};
+	});
 
-	let isOnline = true;
+	$: error = playersError || playerGamesError || gameError;
+	$: isLoading = playersLoading || playerGamesLoading || gameLoading;
 
-	const pendingMutations = writable<Map<string, InsertVote>>(new Map());
+	$: isCreator = playerGames.some(
+		(pg) =>
+			pg.player_id === data?.currentPlayer.id && pg.is_creator && pg.game_id === $page.params.slug
+	);
+
+	$: currentGame = $combinedPlayerGamesStore.find((pg) => pg.game_id === $page.params.slug);
+
+	$: latestSession = sessions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+
+	$: currentUserVotes = votes.filter(
+		(v) => v.player_id === data.currentPlayer.id && v.session_id === latestSession?.id
+	);
+
+	$: averageEstimateOfCurrentSession =
+		votes
+			.filter((v) => v.session_id === latestSession?.id)
+			.reduce((acc, vote) => acc + vote.estimate, 0) /
+		votes.filter((v) => v.session_id === latestSession?.id).length;
 
 	onMount(() => {
 		const playerUnsubscribe = shapePlayerStore.subscribe((value) => {
 			shapePlayerData = value;
 		});
 
-		const playerGamesUnsubscribe = shapePlayerGamesSchema.subscribe((value) => {
+		const gameUnsubscribe = shapeGameStore.subscribe((value) => {
+			shapeGameData = value;
+		});
+
+		const playerGamesUnsubscribe = shapePlayerGamesStore.subscribe((value) => {
 			shapePlayerGamesData = value;
+		});
+
+		const sessionUnsubscribe = shapeSessionStore.subscribe((value) => {
+			shapeSessionData = value;
+		});
+
+		const voteUnsubscribe = shapeVoteStore.subscribe((value) => {
+			shapeVoteData = value;
 		});
 
 		shapePlayerStore.init();
 
-		shapePlayerGamesSchema.init();
+		shapePlayerGamesStore.init();
+
+		shapeGameStore.init();
+
+		shapeSessionStore.init();
+
+		shapeVoteStore.init();
 
 		isOnline = navigator.onLine;
 		window.addEventListener('online', () => {
@@ -84,6 +159,9 @@
 			destroy() {
 				playerUnsubscribe();
 				playerGamesUnsubscribe();
+				gameUnsubscribe();
+				sessionUnsubscribe();
+				voteUnsubscribe();
 			}
 		};
 	});
@@ -98,6 +176,26 @@
 				return pending;
 			});
 		}
+	});
+
+	const addVoteMutation = createMutation({
+		mutationFn: (vote: InsertVote) => createVote(vote),
+		mutationKey: ['add-vote']
+	});
+
+	const updateVoteMutation = createMutation({
+		mutationFn: (vote: InsertVote) => updateVote(vote),
+		mutationKey: ['update-vote']
+	});
+
+	const addSessionMutation = createMutation({
+		mutationFn: (session: InsertSession) => createSession(session),
+		mutationKey: ['add-session']
+	});
+
+	const updateSessionMutation = createMutation({
+		mutationFn: (session: InsertSession) => updateSession(session),
+		mutationKey: ['update-session']
 	});
 
 	function invitePlayer() {
@@ -115,40 +213,134 @@
 		});
 	}
 
-	$: isCreator = playerGames.some(
-		(pg) =>
-			pg.player_id === data?.currentPlayer.id && pg.is_creator && pg.game_id === $page.params.slug
-	);
+	async function handleVote(card: string) {
+		if (latestSession?.status === 'revealed') {
+			toast.error('Session is already revealed.');
+			return;
+		}
+
+		if (latestSession && currentUserVotes?.length === 1) {
+			$updateVoteMutation.mutate({
+				id: currentUserVotes[0].id,
+				playerId: data.currentPlayer.id,
+				sessionId: latestSession.id,
+				estimate: Number(card)
+			});
+		} else if (!latestSession) {
+			const session = await $addSessionMutation.mutateAsync({
+				id: uuidv4(),
+				gameId: $page.params.slug,
+				status: 'active'
+			});
+			$addVoteMutation.mutate({
+				id: uuidv4(),
+				playerId: data.currentPlayer.id,
+				sessionId: session[0].value.id,
+				estimate: Number(card)
+			});
+		} else {
+			$addVoteMutation.mutate({
+				id: uuidv4(),
+				playerId: data.currentPlayer.id,
+				sessionId: latestSession.id,
+				estimate: Number(card)
+			});
+		}
+
+		toast.success(`You voted ${card}.`);
+	}
+
+	function reveal() {
+		if (!latestSession) {
+			toast.error('No active session found.');
+			return;
+		}
+
+		$updateSessionMutation.mutate({
+			id: latestSession.id,
+			status: 'revealed',
+			gameId: latestSession.game_id
+		});
+	}
+
+	function restart() {
+		$addSessionMutation.mutate({
+			id: uuidv4(),
+			gameId: $page.params.slug,
+			status: 'active'
+		});
+	}
 </script>
 
-<p>Network status: {isOnline ? 'Online' : 'Offline'}</p>
+<div class="size-screen h-screen w-full place-content-center pb-20">
+	{#if currentGame?.game?.cards}
+		<div class="grid place-content-center text-center">
+			<h2>Players</h2>
+			<div class="flex gap-5 py-10">
+				{#each $combinedPlayerGamesStore as playerGame}
+					<Card.Root>
+						<Card.Header>{playerGame.player?.name}</Card.Header>
 
-<div>
-	<h1>Players</h1>
-	{#if isLoading}
-		<p>Loading...</p>
-	{:else if error}
-		<p>Error: {error}</p>
-	{:else}
-		<ul>
-			{#each combinedPlayerGamesStore as playerGame}
-				<li>{playerGame.player?.name}</li>
-			{/each}
-		</ul>
+						<Card.Content>
+							{#if playerGame.activeVote && latestSession?.status === 'revealed'}
+								<p class="text-7xl font-bold">{playerGame.activeVote.estimate}</p>
+							{:else if playerGame.activeVote}
+								<p>Done...</p>
+							{:else}
+								<p>Waiting...</p>
+							{/if}
+						</Card.Content>
+					</Card.Root>
+				{/each}
+			</div>
+		</div>
 	{/if}
-</div>
 
-<div>
-	<h2>Actions</h2>
-	<Button on:click={invitePlayer}>Invite new Player</Button>
-	{#if isCreator}
-		<Button
-			variant="destructive"
-			on:click={() => {
-				$clearInviteesMutation.mutate(data.currentPlayer);
-			}}
-		>
-			Clear Players
-		</Button>
+	<div class="grid w-full place-content-center gap-10">
+		<div>
+			<p>Network status: {isOnline ? 'Online' : 'Offline'}</p>
+			{#if latestSession?.status === 'revealed'}
+				<p>Average: {averageEstimateOfCurrentSession}</p>
+			{/if}
+		</div>
+		<div>
+			<Button on:click={invitePlayer}>Invite new Player</Button>
+			<!-- {#if isCreator && playerGames.length > 1}
+				<Button
+					variant="destructive"
+					on:click={() => {
+						$clearInviteesMutation.mutate(data.currentPlayer);
+					}}
+				>
+					Clear Players
+				</Button>
+			{/if} -->
+			<Button variant="outline" on:click={restart}>Restart</Button>
+
+			<Button variant="outline" on:click={reveal}>Reveal</Button>
+		</div>
+	</div>
+
+	{#if currentGame?.game?.cards && !isLoading}
+		<div class="grid place-content-center">
+			<div class="flex gap-5 py-10">
+				{#each currentGame?.game.cards.split(',') as card}
+					<Card.Root
+						on:click={() => handleVote(card)}
+						class={cn(
+							'cursor-pointer transition-transform hover:scale-105 active:scale-95 active:shadow',
+							currentUserVotes.length &&
+								currentUserVotes[0].estimate === Number(card) &&
+								((latestSession?.status === 'revealed' &&
+									'-translate-y-2 bg-green-500 text-white') ||
+									(latestSession?.status !== 'completed' &&
+										'-translate-y-2 animate-bounce bg-green-500 text-white'))
+						)}
+					>
+						<Card.Content>{card}</Card.Content>
+					</Card.Root>
+				{/each}
+			</div>
+		</div>
 	{/if}
 </div>

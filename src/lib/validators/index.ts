@@ -6,7 +6,7 @@ export const gameSchema = z.object({
 	name: z.string().min(1),
 	createdAt: z.date(),
 	cards: z.string(),
-	status: z.enum(['voting', 'revealed', 'completed']).default('voting'),
+	status: z.enum(['created', 'voting', 'revealed', 'finished']).default('created'),
 	playerName: z.string().min(1) // for form input
 });
 
@@ -31,7 +31,7 @@ export type InsertPlayer = z.infer<typeof insertPlayerSchema> & Row;
 
 export const voteScema = z.object({
 	id: z.string().uuid(),
-	gameId: z.string().uuid(),
+	sessionId: z.string().uuid(),
 	playerId: z.string().uuid(),
 	estimate: z.number().int(),
 	votedAt: z.date()
@@ -54,3 +54,17 @@ export type PlayerGames = z.infer<typeof playerGamesSchema> & Row;
 export const insertPlayerGamesSchema = playerGamesSchema.omit({ isCreator: true });
 
 export type InsertPlayerGame = z.infer<typeof insertPlayerGamesSchema> & Row;
+
+export const sessionSchema = z.object({
+	id: z.string().uuid(),
+	gameId: z.string().uuid(),
+	status: z.enum(['active', 'completed', 'revealed']).default('active'),
+	createdAt: z.date(),
+	updatedAt: z.date()
+});
+
+export type Session = z.infer<typeof sessionSchema> & Row;
+
+export const insertSessionSchema = sessionSchema.omit({ createdAt: true, updatedAt: true });
+
+export type InsertSession = z.infer<typeof insertSessionSchema> & Row;
