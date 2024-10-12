@@ -1,7 +1,13 @@
 import { browser } from '$app/environment';
+import { invalidate } from '$app/navigation';
+import type { Player } from '$lib/validators';
 import { QueryClient } from '@tanstack/svelte-query';
 
-export async function load() {
+const CURRENT_PLAYER_DEP = 'custom:currentPlayer';
+
+export async function load({ depends }) {
+	depends(CURRENT_PLAYER_DEP);
+
 	const queryClient = new QueryClient({
 		defaultOptions: {
 			queries: {
@@ -11,8 +17,18 @@ export async function load() {
 		}
 	});
 
+	const currentPlayer = browser
+		? JSON.parse(localStorage.getItem('currentPlayer') || 'null')
+		: null;
+
 	return {
 		queryClient,
-		currentPlayer: browser ? JSON.parse(localStorage.getItem('currentPlayer') || 'null') : null
+		currentPlayer,
+		updateCurrentPlayer: async (newPlayer: Player) => {
+			if (browser) {
+				localStorage.setItem('currentPlayer', JSON.stringify(newPlayer));
+				await invalidate(CURRENT_PLAYER_DEP);
+			}
+		}
 	};
 }

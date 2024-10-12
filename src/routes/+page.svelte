@@ -17,6 +17,7 @@
 	import { createMutation, useQueryClient } from '@tanstack/svelte-query';
 	import { v4 as uuidv4 } from 'uuid';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 
 	export let data;
 
@@ -32,7 +33,13 @@
 		error: null
 	};
 
+	const newGame = $page.url.searchParams.get('newGame')
+		? JSON.parse($page.url.searchParams.get('newGame') || '{}')
+		: undefined;
+
 	$: ({ data: items, isLoading, error } = shapeData);
+
+	$: if (newGame) open = true;
 
 	let isOnline = true;
 	let open = false;
@@ -52,13 +59,6 @@
 		});
 
 		shapeStore.init();
-
-		isOnline = navigator.onLine;
-		window.addEventListener('online', () => {
-			isOnline = true;
-			queryClient.resumePausedMutations();
-		});
-		window.addEventListener('offline', () => (isOnline = false));
 
 		return unsubscribe;
 	});
@@ -121,6 +121,8 @@
 				creatorId: newPlayer[0].value.id
 			});
 
+			await data.updateCurrentPlayer(newPlayer[0].value);
+
 			goto(`/game/${newGame[0].value.id}`);
 		}
 	});
@@ -137,7 +139,7 @@
 	$: if (open) $formData.id = uuidv4();
 </script>
 
-{#if isLoading}
+<!-- {#if isLoading}
 	<p>Loading...</p>
 {:else if error}
 	<p>Error: {error}</p>
@@ -147,7 +149,7 @@
 			<li>{JSON.stringify(item)}</li>
 		{/each}
 	</ul>
-{/if}
+{/if} -->
 
 <Dialog.Root bind:open>
 	<div class="grid h-screen w-full place-content-center">
@@ -174,7 +176,7 @@
 			</Dialog.Description>
 		</Dialog.Header>
 		<div class="grid gap-4 py-4">
-			<form method="POST" class="w-2/3 space-y-6" use:enhance>
+			<form method="POST" class="w-full space-y-6" use:enhance>
 				<Form.Field {form} name="name">
 					<Form.Control let:attrs>
 						<Form.Label>Session Name</Form.Label>
@@ -201,7 +203,7 @@
 							}}
 						>
 							<Select.Trigger {...attrs}>
-								<Select.Value placeholder="Cards" />
+								<Select.Value />
 							</Select.Trigger>
 							<Select.Content>
 								<Select.Item value="viadukt" label="viadukt" />

@@ -9,7 +9,7 @@
 	type Item = { id: string };
 
 	const baseUrl = import.meta.env.ELECTRIC_URL ?? `http://localhost:3000`;
-	const baseApiUrl = `http://localhost:3001`;
+	const baseApiUrl = `http://localhost:3000`;
 
 	const itemShape = () => ({
 		url: new URL(`/v1/shape/items`, baseUrl).href
@@ -72,6 +72,7 @@
 			isOnline = true;
 			queryClient.resumePausedMutations();
 		});
+
 		window.addEventListener('offline', () => (isOnline = false));
 
 		return unsubscribe;

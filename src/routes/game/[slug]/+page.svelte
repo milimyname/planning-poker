@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { createShapeStore, type ShapeStoreData } from '$lib/electric-store';
-	import { createMutation, useQueryClient } from '@tanstack/svelte-query';
+	import { createMutation, createQuery } from '@tanstack/svelte-query';
 	import { onMount } from 'svelte';
 	import { writable } from 'svelte/store';
-	import { playerShape, clearInvitees } from '$lib/electric-actions/player';
+	import { playerShape, deletePlayer, createPlayer } from '$lib/electric-actions/player';
 	import {
 		type InsertVote,
 		type Player,
@@ -23,11 +23,10 @@
 	import { v4 as uuidv4 } from 'uuid';
 	import { createSession, sessionShape, updateSession } from '$lib/electric-actions/session.js';
 	import { cn } from '$lib/utils';
-	import { late } from 'zod';
+	import { goto } from '$app/navigation';
+	import { CircleX } from 'lucide-svelte';
 
 	export let data;
-
-	const queryClient = useQueryClient();
 
 	const shapePlayerStore = createShapeStore<Player>(playerShape());
 	const shapePlayerGamesStore = createShapeStore<PlayerGames>(
@@ -67,19 +66,17 @@
 		error: null
 	};
 
-	let isOnline = true;
-	const pendingMutations = writable<Map<string, InsertVote>>(new Map());
+	const query = createQuery({
+		queryKey: ['players'],
+		queryFn: async () => (await fetch('/api/shapes/players')).json()
+	});
 
 	// Reactive variables for players and playerGames
-	$: ({ data: players, isLoading: playersLoading, error: playersError } = shapePlayerData);
-	$: ({
-		data: playerGames,
-		isLoading: playerGamesLoading,
-		error: playerGamesError
-	} = shapePlayerGamesData);
-	$: ({ data: games, isLoading: gameLoading, error: gameError } = shapeGameData);
-	$: ({ data: sessions } = shapeSessionData);
-	$: ({ data: votes } = shapeVoteData);
+	$: ({ data: players, isLoading: isPlayersLoading } = shapePlayerData);
+	$: ({ data: playerGames, isLoading: isPlayerGamesLoading } = shapePlayerGamesData);
+	$: ({ data: games, isLoading: isGameLoading } = shapeGameData);
+	$: ({ data: sessions, isLoading: isSessionsLoading } = shapeSessionData);
+	$: ({ data: votes, isLoading: isVoteLoading } = shapeVoteData);
 
 	const combinedPlayerGamesStore = writable([]);
 
@@ -88,15 +85,24 @@
 			...pg,
 			player: players.find((p) => p.id === pg.player_id),
 			game: games.find((g) => g.id === pg.game_id),
-			sessions: sessions.filter((s) => s.game_id === pg.game_id),
+			sessions: sessions?.filter((s) => s.game_id === pg.game_id),
 			activeVote: votes.find(
 				(v) => v.session_id === latestSession?.id && v.player_id === pg.player_id
 			)
 		};
 	});
 
-	$: error = playersError || playerGamesError || gameError;
-	$: isLoading = playersLoading || playerGamesLoading || gameLoading;
+	$: if ($combinedPlayerGamesStore.some((pg) => !pg.player) && $query.data?.length > 0) {
+		$combinedPlayerGamesStore = $combinedPlayerGamesStore.map((pg) => {
+			return {
+				...pg,
+				player: $query.data.find((p) => p.id === pg.player_id)
+			};
+		});
+	}
+
+	$: isLoading =
+		isPlayerGamesLoading || isGameLoading || isPlayersLoading || isSessionsLoading || isVoteLoading;
 
 	$: isCreator = playerGames.some(
 		(pg) =>
@@ -107,75 +113,53 @@
 
 	$: latestSession = sessions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
 
-	$: currentUserVotes = votes.filter(
+	$: currentUserVotes = votes?.filter(
 		(v) => v.player_id === data.currentPlayer.id && v.session_id === latestSession?.id
 	);
 
-	$: averageEstimateOfCurrentSession =
+	$: averageEstimateOfCurrentSession = Math.round(
 		votes
-			.filter((v) => v.session_id === latestSession?.id)
+			?.filter((v) => v.session_id === latestSession?.id)
 			.reduce((acc, vote) => acc + vote.estimate, 0) /
-		votes.filter((v) => v.session_id === latestSession?.id).length;
+			votes?.filter((v) => v.session_id === latestSession?.id).length
+	);
 
 	onMount(() => {
-		const playerUnsubscribe = shapePlayerStore.subscribe((value) => {
-			shapePlayerData = value;
-		});
-
-		const gameUnsubscribe = shapeGameStore.subscribe((value) => {
+		shapeGameStore.subscribe((value) => {
 			shapeGameData = value;
 		});
 
-		const playerGamesUnsubscribe = shapePlayerGamesStore.subscribe((value) => {
+		shapePlayerGamesStore.subscribe((value) => {
 			shapePlayerGamesData = value;
 		});
 
-		const sessionUnsubscribe = shapeSessionStore.subscribe((value) => {
+		shapeSessionStore.subscribe((value) => {
 			shapeSessionData = value;
 		});
 
-		const voteUnsubscribe = shapeVoteStore.subscribe((value) => {
+		shapeVoteStore.subscribe((value) => {
 			shapeVoteData = value;
 		});
 
-		shapePlayerStore.init();
-
-		shapePlayerGamesStore.init();
-
-		shapeGameStore.init();
-
-		shapeSessionStore.init();
-
-		shapeVoteStore.init();
-
-		isOnline = navigator.onLine;
-		window.addEventListener('online', () => {
-			isOnline = true;
-			queryClient.resumePausedMutations();
+		shapePlayerStore.subscribe((value) => {
+			shapePlayerData = value;
 		});
-		window.addEventListener('offline', () => (isOnline = false));
 
-		return {
-			destroy() {
-				playerUnsubscribe();
-				playerGamesUnsubscribe();
-				gameUnsubscribe();
-				sessionUnsubscribe();
-				voteUnsubscribe();
-			}
-		};
+		shapePlayerStore.init();
+		shapePlayerGamesStore.init();
+		shapeGameStore.init();
+		shapeSessionStore.init();
+		shapeVoteStore.init();
 	});
 
-	const clearInviteesMutation = createMutation({
-		mutationKey: ['clear-players'],
-		mutationFn: (player: InsertPlayer) => clearInvitees(player),
-		onMutate: (player: InsertPlayer) => {
-			// Clear the invitees except for the current player
-			pendingMutations.update((pending) => {
-				pending.set(player.id, player);
-				return pending;
-			});
-		}
+	const deletePlayerMutation = createMutation({
+		mutationFn: (player: InsertPlayer) => deletePlayer(player),
+		mutationKey: ['delete-player']
+	});
+
+	const addPlayerMutation = createMutation({
+		mutationFn: (newPlayer: InsertPlayer) => createPlayer(newPlayer),
+		mutationKey: ['add-player']
 	});
 
 	const addVoteMutation = createMutation({
@@ -270,51 +254,78 @@
 			status: 'active'
 		});
 	}
+
+	function startNewGame() {
+		goto('/?newGame=true');
+	}
 </script>
 
-<div class="size-screen h-screen w-full place-content-center pb-20">
-	{#if currentGame?.game?.cards}
-		<div class="grid place-content-center text-center">
-			<h2>Players</h2>
-			<div class="flex gap-5 py-10">
-				{#each $combinedPlayerGamesStore as playerGame}
-					<Card.Root>
-						<Card.Header>{playerGame.player?.name}</Card.Header>
+<!-- {#if playersLoading}
+	<p>Loading...</p>
+{:else if playersError}
+	<p>Error: {playersError}</p>
+{:else}
+	<ul>
+		{#each players as item, i}
+			<li>{i + 1}: {item.name}</li>
+		{/each}
+	</ul>
+{/if} -->
 
-						<Card.Content>
-							{#if playerGame.activeVote && latestSession?.status === 'revealed'}
-								<p class="text-7xl font-bold">{playerGame.activeVote.estimate}</p>
-							{:else if playerGame.activeVote}
-								<p>Done...</p>
-							{:else}
-								<p>Waiting...</p>
-							{/if}
-						</Card.Content>
-					</Card.Root>
-				{/each}
-			</div>
+<div class="size-screen h-screen w-full place-content-center pb-20">
+	<div class="grid place-content-center text-center">
+		<h2>Players</h2>
+		<div class=" flex gap-5 py-10">
+			{#each $combinedPlayerGamesStore as playerGame}
+				<Card.Root class="relative">
+					{#if playerGame.player_id !== data.currentPlayer.id && $combinedPlayerGamesStore.length > 1 && isCreator}
+						<Button
+							variant="destructive"
+							size="icon"
+							on:click={() => $deletePlayerMutation.mutate(playerGame.player)}
+							class="absolute -right-2 -top-2 rounded-full"
+						>
+							<CircleX class="size-4" />
+						</Button>
+					{/if}
+
+					<Card.Header>{playerGame.player?.name}</Card.Header>
+
+					<Card.Content>
+						{#if playerGame.activeVote && latestSession?.status === 'revealed'}
+							<p class="text-7xl font-bold">{playerGame.activeVote.estimate}</p>
+						{:else if playerGame.activeVote}
+							<p>Done...</p>
+						{:else}
+							<p>Waiting...</p>
+						{/if}
+					</Card.Content>
+				</Card.Root>
+			{/each}
 		</div>
-	{/if}
+	</div>
 
 	<div class="grid w-full place-content-center gap-10">
 		<div>
-			<p>Network status: {isOnline ? 'Online' : 'Offline'}</p>
 			{#if latestSession?.status === 'revealed'}
 				<p>Average: {averageEstimateOfCurrentSession}</p>
 			{/if}
 		</div>
 		<div>
 			<Button on:click={invitePlayer}>Invite new Player</Button>
-			<!-- {#if isCreator && playerGames.length > 1}
-				<Button
-					variant="destructive"
-					on:click={() => {
-						$clearInviteesMutation.mutate(data.currentPlayer);
-					}}
-				>
-					Clear Players
-				</Button>
-			{/if} -->
+			<Button
+				on:click={() => {
+					$addPlayerMutation.mutate({
+						id: uuidv4(),
+						name: uuidv4()
+					});
+				}}
+			>
+				New Player
+			</Button>
+
+			<Button variant="secondary" on:click={startNewGame}>New Game</Button>
+
 			<Button variant="outline" on:click={restart}>Restart</Button>
 
 			<Button variant="outline" on:click={reveal}>Reveal</Button>

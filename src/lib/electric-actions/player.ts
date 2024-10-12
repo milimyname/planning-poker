@@ -45,7 +45,7 @@ export async function deletePlayer(player: InsertPlayer) {
 	const streamPromise = matchStream({
 		stream: playersStream,
 		operations: ['delete'],
-		matchFn: ({ message }) => message.value.id !== player.id
+		matchFn: ({ message }) => message.value.id === player.id
 	});
 
 	const fetchPromise = fetch(`${BASE_API_URL}/players/item/${player.id}`, {

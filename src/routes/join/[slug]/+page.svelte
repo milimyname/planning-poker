@@ -48,6 +48,8 @@
 				playerId: newInvitee[0].value.id
 			});
 
+			await data.updateCurrentPlayer(newInvitee[0].value);
+
 			goto(`/game/${slug}`);
 		}
 	});
@@ -68,11 +70,11 @@
 <AlertDialog.Root open={true}>
 	<AlertDialog.Content class="sm:max-w-xl">
 		<AlertDialog.Header>
-			<AlertDialog.Title>Create a new session</AlertDialog.Title>
+			<AlertDialog.Title>Join the session</AlertDialog.Title>
 			<AlertDialog.Description>Enter your name to get started.</AlertDialog.Description>
 		</AlertDialog.Header>
 		<div class="grid gap-4 py-4">
-			<form method="POST" class="w-2/3 space-y-6" use:enhance>
+			<form method="POST" class="w-full space-y-6" use:enhance>
 				<Form.Field {form} name="gameId">
 					<Form.Control let:attrs>
 						<Form.Label>Session</Form.Label>

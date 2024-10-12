@@ -1,7 +1,7 @@
 import { db } from '$lib/server/db';
 import { games, players, sessions, votes } from '$lib/server/schema';
 import { json } from '@sveltejs/kit';
-import { ne, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 const shapeMap = {
 	games,
@@ -34,39 +34,39 @@ const shapeMap = {
 // };
 
 export const DELETE = async ({ params }) => {
-	const { slug, rest } = params;
-	const shape = shapeMap[slug];
+	const { shapeSlug, itemSlug } = params;
+	const shape = shapeMap[shapeSlug];
 
-	if (!shape) return json({ error: `Invalid shape: ${slug}` }, { status: 400 });
+	if (!shape) return json({ error: `Invalid shape: ${shapeSlug}` }, { status: 400 });
 
-	if (!rest) return json({ error: `Invalid ID: ${rest}` }, { status: 400 });
+	if (!itemSlug) return json({ error: `Invalid ID: ${itemSlug}` }, { status: 400 });
 
 	try {
-		await db.delete(shape).where(eq(shape.id, rest));
+		await db.delete(shape).where(eq(shape.id, itemSlug));
 
-		return json({ message: `${slug} deleted`, id: rest }, { status: 200 });
+		return json({ message: `${shapeSlug} deleted`, id: itemSlug }, { status: 200 });
 	} catch (error) {
-		console.error(`Error deleting ${slug}:`, error);
-		return json({ error: `Failed to delete ${slug}` }, { status: 500 });
+		console.error(`Error deleting ${shapeSlug}:`, error);
+		return json({ error: `Failed to delete ${shapeSlug}` }, { status: 500 });
 	}
 };
 
 export const PUT = async ({ params, request }) => {
-	const { slug, rest } = params;
-	const shape = shapeMap[slug];
+	const { shapeSlug, itemSlug } = params;
+	const shape = shapeMap[shapeSlug];
 
-	if (!shape) return json({ error: `Invalid shape: ${slug}` }, { status: 400 });
+	if (!shape) return json({ error: `Invalid shape: ${shapeSlug}` }, { status: 400 });
 
-	if (!rest) return json({ error: `Invalid ID: ${rest}` }, { status: 400 });
+	if (!itemSlug) return json({ error: `Invalid ID: ${itemSlug}` }, { status: 400 });
 
 	const body = await request.json();
 
 	try {
-		await db.update(shape).set(body).where(eq(shape.id, rest));
+		await db.update(shape).set(body).where(eq(shape.id, itemSlug));
 
-		return json({ message: `${slug} updated`, id: rest }, { status: 200 });
+		return json({ message: `${shapeSlug} updated`, id: itemSlug }, { status: 200 });
 	} catch (error) {
-		console.error(`Error updating ${slug}:`, error);
-		return json({ error: `Failed to update ${slug}` }, { status: 500 });
+		console.error(`Error updating ${shapeSlug}:`, error);
+		return json({ error: `Failed to update ${shapeSlug}` }, { status: 500 });
 	}
 };
