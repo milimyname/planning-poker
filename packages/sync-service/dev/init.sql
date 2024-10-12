@@ -1,1 +1,0 @@
--- CREATE PUBLICATION electric_publication;
