@@ -23,8 +23,9 @@ services:
   backend:
     image: electricsql/electric:canary
     environment:
+      # local
       # DATABASE_URL: postgresql://postgres:password@postgres:5432/electric
-      # AUTH_JWT_KEY: fMrPiI1hfdd9dGazpEvXyIH/EGbUp6R76vWjD1cSj14mp/rag3lVwT72EtKERiceAmD6q0ZRuMApdpTDNFXnFw==
+      DATABASE_URL: postgresql://postgres:password@[fd00:c16a:601e::1]:5432/electric
       DATABASE_USE_IPV6: true
       LISTEN_ON_IPV6: true
 
