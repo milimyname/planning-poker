@@ -1,7 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { createShapeStore, type ShapeStoreData } from '$lib/electric-store';
-	import { Button, buttonVariants } from '$lib/components/ui/button';
+	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
 	import SuperDebug, { superForm } from 'sveltekit-superforms';
@@ -13,71 +11,24 @@
 	import { insertGameSchema, type InsertGame, type InsertPlayer } from '$lib/validators';
 	import { createGame, clearGames } from '$lib/electric-actions/game';
 	import { createPlayer } from '$lib/electric-actions/player';
-	import { writable } from 'svelte/store';
-	import { createMutation, useQueryClient } from '@tanstack/svelte-query';
+	import { createMutation } from '@tanstack/svelte-query';
 	import { v4 as uuidv4 } from 'uuid';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 
 	export let data;
 
-	const shapeStore = createShapeStore({
-		url: 'http://localhost:3000/v1/shape/games'
-	});
-
-	const queryClient = useQueryClient();
-
-	let shapeData: ShapeStoreData = {
-		data: [],
-		isLoading: true,
-		error: null
-	};
-
 	const newGame = $page.url.searchParams.get('newGame')
 		? JSON.parse($page.url.searchParams.get('newGame') || '{}')
 		: undefined;
 
-	$: ({ data: items, isLoading, error } = shapeData);
-
 	$: if (newGame) open = true;
 
-	let isOnline = true;
 	let open = false;
-
-	const pendingMutations = writable<Map<string, InsertGame>>(new Map());
-
-	onMount(() => {
-		const unsubscribe = shapeStore.subscribe((value) => {
-			shapeData = value;
-			// Remove pending mutations that are now in the actual data
-			pendingMutations.update((pending) => {
-				value.data.forEach((game) => {
-					pending.delete(game.id);
-				});
-				return pending;
-			});
-		});
-
-		shapeStore.init();
-
-		return unsubscribe;
-	});
 
 	const addGameMutation = createMutation({
 		mutationFn: (newGame: InsertGame) => createGame(newGame),
-		mutationKey: ['add-game'],
-		onMutate: (newGame) => {
-			pendingMutations.update((pending) => {
-				pending.set(newGame.id, newGame);
-				return pending;
-			});
-		},
-		onSettled: (data, error, variables, context) => {
-			pendingMutations.update((pending) => {
-				pending.delete(variables.id);
-				return pending;
-			});
-		}
+		mutationKey: ['add-game']
 	});
 
 	const addPlayerMutation = createMutation({
@@ -87,10 +38,7 @@
 
 	const clearGamesMutation = createMutation({
 		mutationKey: ['clearGames'],
-		mutationFn: clearGames,
-		onMutate: () => {
-			pendingMutations.set(new Map());
-		}
+		mutationFn: clearGames
 	});
 
 	const form = superForm(data.form, {
@@ -139,33 +87,12 @@
 	$: if (open) $formData.id = uuidv4();
 </script>
 
-<!-- {#if isLoading}
-	<p>Loading...</p>
-{:else if error}
-	<p>Error: {error}</p>
-{:else}
-	<ul>
-		{#each items as item}
-			<li>{JSON.stringify(item)}</li>
-		{/each}
-	</ul>
-{/if} -->
-
 <Dialog.Root bind:open>
 	<div class="grid h-screen w-full place-content-center">
 		<div class="flex gap-2">
 			<Dialog.Trigger class={buttonVariants({ variant: 'outline' })}>
 				Create a new session
 			</Dialog.Trigger>
-			<Button
-				variant="destructive"
-				on:click={() => {
-					$clearGamesMutation.mutate();
-					localStorage.removeItem('currentUser');
-				}}
-			>
-				Clear all
-			</Button>
 		</div>
 	</div>
 	<Dialog.Content class="sm:max-w-xl">
