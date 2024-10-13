@@ -3,8 +3,8 @@ import type {
 	DehydratedState,
 	DehydrateOptions,
 	HydrateOptions
-} from '@tanstack/query-core';
-import { dehydrate, hydrate } from '@tanstack/query-core';
+} from '@tanstack/svelte-query';
+import { dehydrate, hydrate } from '@tanstack/svelte-query';
 
 export type Promisable<T> = T | PromiseLike<T>;
 
