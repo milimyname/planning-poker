@@ -1,2 +1,2 @@
 # .husky/pre-commit
-bun format
+pnpm run format
