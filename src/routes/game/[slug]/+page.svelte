@@ -28,7 +28,9 @@
 	import { CircleX } from 'lucide-svelte';
 	import LoadingDots from '$lib/components/loading-dots.svelte';
 	import Countdown from '$lib/components/countdown.svelte';
-	import { Switch, Label } from 'bits-ui';
+	import { Switch, Label, Popover } from 'bits-ui';
+	import Reactions from '$lib/components/reactions.svelte';
+	import { randomEmojiGenerator } from '$lib/random-emoji-generator.js';
 
 	export let data;
 
@@ -74,6 +76,9 @@
 		queryKey: ['players'],
 		queryFn: async () => (await fetch('/api/shapes/players')).json()
 	});
+
+	let isHovered: string;
+	let randomEmoji = randomEmojiGenerator();
 
 	// Reactive variables for players and playerGames
 	$: ({ data: players, isLoading: isPlayersLoading } = shapePlayerData);
@@ -209,7 +214,7 @@
 		});
 	}
 
-	async function handleVote(card: string) {
+	async function handleVote(estimate: string, type: 'basic' | 'emoji') {
 		if (latestSession?.status === 'revealed') {
 			toast.error('Session is already revealed.');
 			return;
@@ -220,7 +225,7 @@
 				id: currentUserVotes[0].id,
 				playerId: data.currentPlayer.id,
 				sessionId: latestSession.id,
-				estimate: Number(card)
+				...(type === 'basic' ? { estimate: Number(estimate) } : { emoji: estimate })
 			});
 		} else if (!latestSession) {
 			const session = await $addSessionMutation.mutateAsync({
@@ -232,23 +237,29 @@
 				id: uuidv4(),
 				playerId: data.currentPlayer.id,
 				sessionId: session[0].value.id,
-				estimate: Number(card)
+				...(type === 'basic' ? { estimate: Number(estimate) } : { emoji: estimate })
 			});
 		} else {
 			$addVoteMutation.mutate({
 				id: uuidv4(),
 				playerId: data.currentPlayer.id,
 				sessionId: latestSession.id,
-				estimate: Number(card)
+				...(type === 'basic' ? { estimate: Number(estimate) } : { emoji: estimate })
 			});
 		}
 
-		toast.success(`You voted ${card}.`);
+		toast.success(`You voted ${estimate}.`);
 	}
 
 	function reveal() {
 		if (!latestSession) {
 			toast.error('No active session found.');
+			return;
+		}
+
+		// if no votes are casted, show a toast message
+		if (!votes?.find((v) => v.session_id === latestSession.id)) {
+			toast.error('No votes casted yet.');
 			return;
 		}
 
@@ -304,8 +315,19 @@
 		<div class=" flex gap-5 py-10">
 			{#each $combinedPlayerGamesStore as playerGame}
 				<Card.Root
-					class={cn('relative w-32 max-w-52', playerGame.activeVote && 'border border-green-500')}
+					class={cn(
+						'relative h-fit w-32 max-w-52',
+						playerGame.activeVote && 'border border-blue-500'
+					)}
+					on:mouseenter={() => (isHovered = playerGame.player_id)}
+					on:mouseleave={() => (isHovered = '')}
+					id={playerGame.player_id}
 				>
+					<Reactions
+						targetedCardId={playerGame.player_id}
+						show={isHovered === playerGame.player_id}
+					/>
+
 					{#if playerGame.player_id !== data.currentPlayer.id && $combinedPlayerGamesStore.length > 1 && isCreator}
 						<Button
 							variant="destructive"
@@ -321,7 +343,9 @@
 
 					<Card.Content>
 						{#if playerGame.activeVote && latestSession?.status === 'revealed'}
-							<p class="text-7xl font-bold">{playerGame.activeVote.estimate}</p>
+							<p class="text-7xl font-bold">
+								{playerGame.activeVote.estimate ?? playerGame.activeVote.emoji}
+							</p>
 						{:else if playerGame.activeVote}
 							<p>Done...</p>
 						{:else if latestSession?.status !== 'revealed'}
@@ -343,7 +367,11 @@
 		</div>
 		<div class="grid grid-rows-2 gap-5">
 			<div class="grid grid-cols-2 gap-5">
-				<Button variant="outline" on:click={reveal}>Reveal</Button>
+				{#if latestSession?.status === 'revealed'}
+					<Button variant="secondary" on:click={restart}>Restart</Button>
+				{:else}
+					<Button variant="outline" on:click={reveal}>Reveal</Button>
+				{/if}
 
 				<div class="flex items-center space-x-3">
 					<Switch.Root
@@ -360,10 +388,9 @@
 				</div>
 			</div>
 
-			<div class="flex gap-3">
+			<div class="grid grid-cols-2 gap-3">
 				<Button on:click={invitePlayer}>Invite new Player</Button>
 				<Button variant="secondary" on:click={startNewGame}>New Game</Button>
-				<Button variant="outline" on:click={restart}>Restart</Button>
 			</div>
 		</div>
 	</div>
@@ -371,9 +398,10 @@
 	{#if currentGame?.game?.cards && !isLoading}
 		<div class="grid place-content-center">
 			<div class="flex gap-5 py-10">
-				{#each currentGame?.game.cards.split(',') as card}
+				{#each [...currentGame?.game.cards.split(','), randomEmoji] as card}
 					<Card.Root
-						on:click={() => handleVote(card)}
+						on:click={() =>
+							randomEmoji !== card ? handleVote(card, 'basic') : handleVote(randomEmoji, 'emoji')}
 						class={cn(
 							'cursor-pointer transition-transform hover:scale-105 active:scale-95 active:shadow',
 							currentUserVotes.length &&

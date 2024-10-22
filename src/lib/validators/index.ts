@@ -40,7 +40,8 @@ export const voteScema = z.object({
 	id: z.string().uuid(),
 	sessionId: z.string().uuid(),
 	playerId: z.string().uuid(),
-	estimate: z.number().int(),
+	estimate: z.number().int().nullish(),
+	emoji: z.string().min(1).nullish(),
 	votedAt: z.date()
 });
 

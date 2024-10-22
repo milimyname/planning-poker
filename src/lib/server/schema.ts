@@ -76,6 +76,7 @@ export const votes = pgTable('votes', {
 		.references(() => players.id, { onDelete: 'cascade' })
 		.notNull(),
 	estimate: integer('estimate'),
+	emoji: varchar('emoji', { length: 255 }),
 	votedAt: timestamp('voted_at').defaultNow().notNull(),
 	createdAt: timestamp('created_at').notNull().defaultNow(),
 	updatedAt: timestamp('updated_at', {

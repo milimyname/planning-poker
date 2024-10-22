@@ -1,0 +1,1 @@
+ALTER TABLE "votes" ADD COLUMN "emoji" varchar(255);
