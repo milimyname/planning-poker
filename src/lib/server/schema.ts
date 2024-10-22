@@ -23,7 +23,8 @@ export const games = pgTable('games', {
 		.notNull()
 		.$onUpdate(() => sql`now()`),
 	cards: varchar('cards', { length: 255 }).notNull(),
-	status: gameStatusEnum('status').default('created').notNull()
+	status: gameStatusEnum('status').default('created').notNull(),
+	autoReveal: boolean('auto_reveal').default(false).notNull()
 });
 
 export const players = pgTable('players', {

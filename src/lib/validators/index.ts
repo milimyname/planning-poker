@@ -7,18 +7,25 @@ export const gameSchema = z.object({
 	createdAt: z.date(),
 	cards: z.string(),
 	status: z.enum(['created', 'voting', 'revealed', 'finished']).default('created'),
-	playerName: z.string().min(1) // for form input
+	playerName: z.string().min(1), // for form input,
+	autoReveal: z.boolean().default(false)
 });
 
 export type Game = z.infer<typeof gameSchema> & Row;
 
 export const insertGameSchema = gameSchema.omit({ createdAt: true });
+export const updateGameSChema = gameSchema.omit({
+	createdAt: true,
+	playerName: true
+});
 
 export type InsertGame = z.infer<typeof insertGameSchema> & Row;
 
+export type UpdateGame = z.infer<typeof updateGameSChema> & Row;
+
 export const playerSchema = z.object({
 	id: z.string().uuid(),
-	name: z.string().min(1),
+	name: z.string().min(1).max(15),
 	joinedAt: z.date(),
 	gameId: z.string().uuid().optional() // TODO: remove later
 });

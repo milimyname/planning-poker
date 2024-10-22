@@ -3,7 +3,7 @@
 	import { createMutation, createQuery } from '@tanstack/svelte-query';
 	import { onMount } from 'svelte';
 	import { writable } from 'svelte/store';
-	import { playerShape, deletePlayer, createPlayer } from '$lib/electric-actions/player';
+	import { playerShape, deletePlayer } from '$lib/electric-actions/player';
 	import {
 		type InsertVote,
 		type Player,
@@ -11,20 +11,24 @@
 		type PlayerGames,
 		type Game,
 		type InsertSession,
-		type Session
+		type Session,
+		type UpdateGame
 	} from '$lib/validators';
 	import { Button } from '$lib/components/ui/button';
 	import { page } from '$app/stores';
 	import { toast } from 'svelte-sonner';
 	import * as Card from '$lib/components/ui/card';
 	import { playerGamesWithWhereSchema } from '$lib/electric-actions/playerGames';
-	import { gameShape } from '$lib/electric-actions/game';
+	import { gameShape, updateGame } from '$lib/electric-actions/game';
 	import { createVote, updateVote, voteShape } from '$lib/electric-actions/vote';
 	import { v4 as uuidv4 } from 'uuid';
 	import { createSession, sessionShape, updateSession } from '$lib/electric-actions/session.js';
 	import { cn } from '$lib/utils';
 	import { goto } from '$app/navigation';
 	import { CircleX } from 'lucide-svelte';
+	import LoadingDots from '$lib/components/loading-dots.svelte';
+	import Countdown from '$lib/components/countdown.svelte';
+	import { Switch, Label } from 'bits-ui';
 
 	export let data;
 
@@ -78,7 +82,15 @@
 	$: ({ data: sessions, isLoading: isSessionsLoading } = shapeSessionData);
 	$: ({ data: votes, isLoading: isVoteLoading } = shapeVoteData);
 
-	const combinedPlayerGamesStore = writable([]);
+	const combinedPlayerGamesStore = writable<
+		{
+			player: Player;
+			game: Game;
+			sessions: Session[];
+			activeVote: InsertVote;
+			player_id: string;
+		}[]
+	>([]);
 
 	$: $combinedPlayerGamesStore = playerGames?.map((pg) => {
 		return {
@@ -157,11 +169,6 @@
 		mutationKey: ['delete-player']
 	});
 
-	const addPlayerMutation = createMutation({
-		mutationFn: (newPlayer: InsertPlayer) => createPlayer(newPlayer),
-		mutationKey: ['add-player']
-	});
-
 	const addVoteMutation = createMutation({
 		mutationFn: (vote: InsertVote) => createVote(vote),
 		mutationKey: ['add-vote']
@@ -180,6 +187,11 @@
 	const updateSessionMutation = createMutation({
 		mutationFn: (session: InsertSession) => updateSession(session),
 		mutationKey: ['update-session']
+	});
+
+	const updateGameMutation = createMutation({
+		mutationFn: (game: UpdateGame) => updateGame(game),
+		mutationKey: ['update-game']
 	});
 
 	function invitePlayer() {
@@ -240,10 +252,15 @@
 			return;
 		}
 
+		if (latestSession.status === 'revealed') {
+			toast.error('Session is already revealed. Please restart the session.');
+			return;
+		}
+
 		$updateSessionMutation.mutate({
 			id: latestSession.id,
 			status: 'revealed',
-			gameId: latestSession.game_id
+			gameId: latestSession.game_id as string
 		});
 	}
 
@@ -258,26 +275,37 @@
 	function startNewGame() {
 		goto('/?newGame=true');
 	}
+
+	function toggleAutoReveal() {
+		toast.success(`Auto reveal is now ${currentGame?.game?.auto_reveal ? 'enabled' : 'disabled'}.`);
+
+		$updateGameMutation.mutate({
+			id: $page.params.slug,
+			autoReveal: !currentGame?.game?.auto_reveal,
+			cards: currentGame?.game?.cards ?? '',
+			name: currentGame?.game?.name ?? '',
+			status: currentGame?.game?.status ?? 'voting'
+		});
+	}
 </script>
 
-<!-- {#if playersLoading}
-	<p>Loading...</p>
-{:else if playersError}
-	<p>Error: {playersError}</p>
-{:else}
-	<ul>
-		{#each players as item, i}
-			<li>{i + 1}: {item.name}</li>
-		{/each}
-	</ul>
-{/if} -->
-
 <div class="size-screen h-screen w-full place-content-center pb-20">
+	{#if isLoading}
+		<LoadingDots />
+	{/if}
+
+	{#if currentGame?.game?.auto_reveal && latestSession?.status !== 'revealed' && $combinedPlayerGamesStore.find((pg) => pg.activeVote)}
+		<div class="grid place-content-center text-center">
+			<Countdown {currentGame} handleReveal={reveal} />
+		</div>
+	{/if}
+
 	<div class="grid place-content-center text-center">
-		<h2>Players</h2>
 		<div class=" flex gap-5 py-10">
 			{#each $combinedPlayerGamesStore as playerGame}
-				<Card.Root class="relative">
+				<Card.Root
+					class={cn('relative w-32 max-w-52', playerGame.activeVote && 'border border-green-500')}
+				>
 					{#if playerGame.player_id !== data.currentPlayer.id && $combinedPlayerGamesStore.length > 1 && isCreator}
 						<Button
 							variant="destructive"
@@ -296,8 +324,10 @@
 							<p class="text-7xl font-bold">{playerGame.activeVote.estimate}</p>
 						{:else if playerGame.activeVote}
 							<p>Done...</p>
+						{:else if latestSession?.status !== 'revealed'}
+							<LoadingDots />
 						{:else}
-							<p>Waiting...</p>
+							<p class="text-7xl font-bold">-</p>
 						{/if}
 					</Card.Content>
 				</Card.Root>
@@ -308,27 +338,33 @@
 	<div class="grid w-full place-content-center gap-10">
 		<div>
 			{#if latestSession?.status === 'revealed'}
-				<p>Average: {averageEstimateOfCurrentSession}</p>
+				<p class="text-center">Average: {averageEstimateOfCurrentSession}</p>
 			{/if}
 		</div>
-		<div>
-			<Button on:click={invitePlayer}>Invite new Player</Button>
-			<Button
-				on:click={() => {
-					$addPlayerMutation.mutate({
-						id: uuidv4(),
-						name: uuidv4()
-					});
-				}}
-			>
-				New Player
-			</Button>
+		<div class="grid grid-rows-2 gap-5">
+			<div class="grid grid-cols-2 gap-5">
+				<Button variant="outline" on:click={reveal}>Reveal</Button>
 
-			<Button variant="secondary" on:click={startNewGame}>New Game</Button>
+				<div class="flex items-center space-x-3">
+					<Switch.Root
+						on:click={toggleAutoReveal}
+						id="auto-reveal"
+						checked={currentGame?.game?.auto_reveal}
+						class="data-[state=unchecked]:shadow-mini-inset peer inline-flex h-[36px] min-h-[36px] w-[60px] shrink-0 cursor-pointer items-center rounded-full px-[3px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-foreground data-[state=unchecked]:bg-slate-300 dark:data-[state=checked]:bg-foreground"
+					>
+						<Switch.Thumb
+							class="data-[state=unchecked]:shadow-mini pointer-events-none block size-[30px] shrink-0 rounded-full bg-background transition-transform data-[state=checked]:translate-x-6 data-[state=unchecked]:translate-x-0 dark:border dark:border-background/30 dark:bg-foreground dark:shadow-popover dark:data-[state=unchecked]:border"
+						/>
+					</Switch.Root>
+					<Label.Root for="auto-reveal" class="text-sm font-medium">Auto Reveal</Label.Root>
+				</div>
+			</div>
 
-			<Button variant="outline" on:click={restart}>Restart</Button>
-
-			<Button variant="outline" on:click={reveal}>Reveal</Button>
+			<div class="flex gap-3">
+				<Button on:click={invitePlayer}>Invite new Player</Button>
+				<Button variant="secondary" on:click={startNewGame}>New Game</Button>
+				<Button variant="outline" on:click={restart}>Restart</Button>
+			</div>
 		</div>
 	</div>
 

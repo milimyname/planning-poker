@@ -1,6 +1,6 @@
 import { getShapeStream } from '$lib/electric-store';
 import { matchStream } from '$lib/match-stream';
-import { type InsertGame } from '$lib/validators';
+import { type InsertGame, type UpdateGame } from '$lib/validators';
 import { BASE_URL, BASE_API_URL } from '$lib/constants';
 
 export const gameShape = () => ({
@@ -31,5 +31,21 @@ export async function clearGames() {
 		matchFn: () => true
 	});
 	const fetchPromise = fetch(`${BASE_API_URL}/games`, { method: `DELETE` });
+	return await Promise.all([findUpdatePromise, fetchPromise]);
+}
+
+export async function updateGame(game: UpdateGame) {
+	const gameStream = getShapeStream<UpdateGame>(gameShape());
+
+	const findUpdatePromise = matchStream({
+		stream: gameStream,
+		operations: ['update'],
+		matchFn: ({ message }) => message.value.id === game.id
+	});
+
+	const fetchPromise = fetch(`${BASE_API_URL}/games/item/${game.id}`, {
+		method: `PUT`,
+		body: JSON.stringify(game)
+	});
 	return await Promise.all([findUpdatePromise, fetchPromise]);
 }

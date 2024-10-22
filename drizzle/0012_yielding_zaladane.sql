@@ -1,0 +1,1 @@
+ALTER TABLE "games" ADD COLUMN "auto_reveal" boolean DEFAULT false NOT NULL;
