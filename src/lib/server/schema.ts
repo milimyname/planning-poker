@@ -88,6 +88,21 @@ export const votes = pgTable('votes', {
 		.$onUpdate(() => sql`now()`)
 });
 
+export const reactions = pgTable('reactions', {
+	id: uuid('id').defaultRandom().primaryKey(),
+	sessionId: uuid('session_id')
+		.notNull()
+		.references(() => sessions.id, { onDelete: 'cascade' }),
+	playerId: uuid('player_id')
+		.references(() => players.id, { onDelete: 'cascade' })
+		.notNull(),
+	targetPlayerId: uuid('target_player_id')
+		.references(() => players.id, { onDelete: 'cascade' })
+		.notNull(),
+	emoji: varchar('emoji', { length: 10 }).notNull(),
+	createdAt: timestamp('created_at').notNull().defaultNow()
+});
+
 // Relations
 export const gamesRelations = relations(games, ({ one, many }) => ({
 	creator: one(players, {
@@ -129,6 +144,21 @@ export const votesRelations = relations(votes, ({ one }) => ({
 	}),
 	player: one(players, {
 		fields: [votes.playerId],
+		references: [players.id]
+	})
+}));
+
+export const reactionsRelations = relations(reactions, ({ one }) => ({
+	session: one(sessions, {
+		fields: [reactions.sessionId],
+		references: [sessions.id]
+	}),
+	player: one(players, {
+		fields: [reactions.playerId],
+		references: [players.id]
+	}),
+	targetPlayer: one(players, {
+		fields: [reactions.targetPlayerId],
 		references: [players.id]
 	})
 }));

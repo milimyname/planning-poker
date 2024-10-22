@@ -1,5 +1,5 @@
 import { db } from '$lib/server/db';
-import { games, players, playerGames, votes, sessions } from '$lib/server/schema';
+import { games, players, playerGames, votes, sessions, reactions } from '$lib/server/schema';
 import { json } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 
@@ -8,7 +8,8 @@ const shapeMap = {
 	players,
 	playerGames,
 	votes,
-	sessions
+	sessions,
+	reactions
 };
 
 export const POST = async ({ params, request }) => {

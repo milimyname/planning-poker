@@ -1,5 +1,5 @@
 import { db } from '$lib/server/db';
-import { games, players, sessions, votes } from '$lib/server/schema';
+import { games, players, sessions, votes, reactions } from '$lib/server/schema';
 import { json } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 
@@ -7,7 +7,8 @@ const shapeMap = {
 	games,
 	players,
 	votes,
-	sessions
+	sessions,
+	reactions
 };
 
 // // New endpoint for deleting all except one

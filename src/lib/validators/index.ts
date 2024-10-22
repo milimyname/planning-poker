@@ -76,3 +76,18 @@ export type Session = z.infer<typeof sessionSchema> & Row;
 export const insertSessionSchema = sessionSchema.omit({ createdAt: true, updatedAt: true });
 
 export type InsertSession = z.infer<typeof insertSessionSchema> & Row;
+
+export const reactionSchema = z.object({
+	id: z.string().uuid(),
+	sessionId: z.string().uuid(),
+	playerId: z.string().uuid(),
+	targetPlayerId: z.string().uuid(),
+	emoji: z.string().min(1),
+	createdAt: z.date()
+});
+
+export type Reaction = z.infer<typeof reactionSchema> & Row;
+
+export const insertReactionSchema = reactionSchema.omit({ createdAt: true });
+
+export type InsertReaction = z.infer<typeof insertReactionSchema> & Row;

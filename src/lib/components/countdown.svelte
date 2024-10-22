@@ -4,7 +4,7 @@
 	export let currentGame: any;
 	export let handleReveal: () => void;
 
-	let countdown = 8;
+	let countdown = 10;
 	let countdownInterval: NodeJS.Timeout;
 	let isCountingDown = false;
 

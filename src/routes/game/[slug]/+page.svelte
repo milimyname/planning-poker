@@ -12,7 +12,8 @@
 		type Game,
 		type InsertSession,
 		type Session,
-		type UpdateGame
+		type UpdateGame,
+		type InsertReaction
 	} from '$lib/validators';
 	import { Button } from '$lib/components/ui/button';
 	import { page } from '$app/stores';
@@ -30,7 +31,12 @@
 	import Countdown from '$lib/components/countdown.svelte';
 	import { Switch, Label, Popover } from 'bits-ui';
 	import Reactions from '$lib/components/reactions.svelte';
-	import { randomEmojiGenerator } from '$lib/random-emoji-generator.js';
+	import { randomEmojiGenerator } from '$lib/random-emoji-generator';
+	import {
+		createReaction,
+		reactionShape,
+		clearReactionsBySessionId
+	} from '$lib/electric-actions/reaction';
 
 	export let data;
 
@@ -41,6 +47,7 @@
 	const shapeGameStore = createShapeStore<Game>(gameShape());
 	const shapeSessionStore = createShapeStore<Session>(sessionShape());
 	const shapeVoteStore = createShapeStore<InsertVote>(voteShape());
+	const shapeReactionStore = createShapeStore(reactionShape());
 
 	let shapePlayerData: ShapeStoreData<Player> = {
 		data: [],
@@ -72,6 +79,12 @@
 		error: null
 	};
 
+	let shapeReactionData: ShapeStoreData = {
+		data: [],
+		isLoading: true,
+		error: null
+	};
+
 	const query = createQuery({
 		queryKey: ['players'],
 		queryFn: async () => (await fetch('/api/shapes/players')).json()
@@ -86,6 +99,7 @@
 	$: ({ data: games, isLoading: isGameLoading } = shapeGameData);
 	$: ({ data: sessions, isLoading: isSessionsLoading } = shapeSessionData);
 	$: ({ data: votes, isLoading: isVoteLoading } = shapeVoteData);
+	$: ({ data: reactions, isLoading: isReactionLoading } = shapeReactionData);
 
 	const combinedPlayerGamesStore = writable<
 		{
@@ -138,7 +152,7 @@
 		votes
 			?.filter((v) => v.session_id === latestSession?.id)
 			.reduce((acc, vote) => acc + vote.estimate, 0) /
-			votes?.filter((v) => v.session_id === latestSession?.id).length
+			votes?.filter((v) => v.session_id === latestSession?.id && v.estimate).length
 	);
 
 	onMount(() => {
@@ -162,16 +176,26 @@
 			shapePlayerData = value;
 		});
 
+		shapeReactionStore.subscribe((value) => {
+			shapeReactionData = value;
+		});
+
 		shapePlayerStore.init();
 		shapePlayerGamesStore.init();
 		shapeGameStore.init();
 		shapeSessionStore.init();
 		shapeVoteStore.init();
+		shapeReactionStore.init();
 	});
 
 	const deletePlayerMutation = createMutation({
 		mutationFn: (player: InsertPlayer) => deletePlayer(player),
 		mutationKey: ['delete-player']
+	});
+
+	const deleteReactionsBySessionIdMutation = createMutation({
+		mutationFn: (sessionId: string) => clearReactionsBySessionId(sessionId),
+		mutationKey: ['clear-reactions']
 	});
 
 	const addVoteMutation = createMutation({
@@ -187,6 +211,11 @@
 	const addSessionMutation = createMutation({
 		mutationFn: (session: InsertSession) => createSession(session),
 		mutationKey: ['add-session']
+	});
+
+	const addReactionMutation = createMutation({
+		mutationFn: (reaction: InsertReaction) => createReaction(reaction),
+		mutationKey: ['add-reaction']
 	});
 
 	const updateSessionMutation = createMutation({
@@ -298,6 +327,20 @@
 			status: currentGame?.game?.status ?? 'voting'
 		});
 	}
+
+	function handleReaction(emoji: string) {
+		$addReactionMutation.mutate({
+			id: uuidv4(),
+			playerId: data.currentPlayer.id,
+			targetPlayerId: isHovered,
+			emoji,
+			sessionId: latestSession.id
+		});
+	}
+
+	function clearReactions() {
+		$deleteReactionsBySessionIdMutation.mutate(latestSession.id);
+	}
 </script>
 
 <div class="size-screen h-screen w-full place-content-center pb-20">
@@ -326,6 +369,8 @@
 					<Reactions
 						targetedCardId={playerGame.player_id}
 						show={isHovered === playerGame.player_id}
+						{handleReaction}
+						{reactions}
 					/>
 
 					{#if playerGame.player_id !== data.currentPlayer.id && $combinedPlayerGamesStore.length > 1 && isCreator}
@@ -373,7 +418,7 @@
 					<Button variant="outline" on:click={reveal}>Reveal</Button>
 				{/if}
 
-				<div class="flex items-center space-x-3">
+				<div class="flex items-center space-x-3 justify-self-end">
 					<Switch.Root
 						on:click={toggleAutoReveal}
 						id="auto-reveal"
@@ -388,9 +433,10 @@
 				</div>
 			</div>
 
-			<div class="grid grid-cols-2 gap-3">
+			<div class="grid grid-cols-3 gap-3">
 				<Button on:click={invitePlayer}>Invite new Player</Button>
 				<Button variant="secondary" on:click={startNewGame}>New Game</Button>
+				<Button variant="secondary" on:click={clearReactions}>Clear Reactions</Button>
 			</div>
 		</div>
 	</div>

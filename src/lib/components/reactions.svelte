@@ -1,8 +1,23 @@
 <script lang="ts">
+	import type { InsertReaction } from '$lib/validators';
+	import { fade } from 'svelte/transition';
+
 	export let targetedCardId: string;
 	export let show: boolean;
+	export let reactions: InsertReaction[];
+	export let handleReaction: (emoji: string) => void;
 
-	let emojis = [];
+	let animatedEmojis = [];
+	let previousReactions: InsertReaction[] = [];
+
+	// Filter reactions for this specific card
+	$: cardReactions = reactions.filter((reaction) => reaction.target_player_id === targetedCardId);
+
+	// Track reactions counts for this card only
+	$: reactionCounts = cardReactions.reduce((acc, reaction) => {
+		acc[reaction.emoji] = (acc[reaction.emoji] || 0) + 1;
+		return acc;
+	}, {});
 
 	const emojiButtons = [
 		{ emoji: '👍', label: 'thumbs up' },
@@ -11,6 +26,25 @@
 		{ emoji: '😢', label: 'sad' },
 		{ emoji: '😡', label: 'angry' }
 	];
+
+	// Watch for new reactions for this specific card
+	$: {
+		if (cardReactions) {
+			const newReactions = cardReactions.filter(
+				(reaction) => !previousReactions.some((prev) => prev.id === reaction.id)
+			);
+
+			// Animate each new reaction
+			newReactions.forEach((reaction) => {
+				if (!animatedEmojis.some((e) => e.reactionId === reaction.id)) {
+					throwEmoji(reaction.emoji, reaction.id);
+				}
+			});
+
+			// Update previous reactions
+			previousReactions = cardReactions;
+		}
+	}
 
 	function getRandomStartPosition() {
 		const edge = Math.floor(Math.random() * 4);
@@ -39,6 +73,7 @@
 	}
 
 	function calculateCollisionPoint(start, target) {
+		if (!target) return { x: 0, y: 0 };
 		const targetBounds = target.getBoundingClientRect();
 
 		const dx = targetBounds.x + targetBounds.width / 2 - start.x;
@@ -70,9 +105,18 @@
 		return { x: collisionX, y: collisionY };
 	}
 
-	function throwEmoji(selectedEmoji: string) {
+	function throwEmoji(selectedEmoji: string, reactionId?: string) {
+		// If no reactionId, this is a new reaction from the user
+		if (!reactionId) {
+			handleReaction(selectedEmoji);
+
+			return;
+		}
+
 		const startPos = getRandomStartPosition();
 		const targetCard = document.getElementById(targetedCardId);
+		if (!targetCard) return;
+
 		const collisionPoint = calculateCollisionPoint(startPos, targetCard);
 
 		const dx = collisionPoint.x - startPos.x;
@@ -87,6 +131,7 @@
 
 		const emoji = {
 			id: Math.random().toString(36).substring(7),
+			reactionId,
 			content: selectedEmoji,
 			startX: startPos.x,
 			startY: startPos.y,
@@ -97,42 +142,57 @@
 			rotation: Math.random() * 720 - 360
 		};
 
-		emojis = [...emojis, emoji];
+		animatedEmojis = [...animatedEmojis, emoji];
 
 		setTimeout(() => {
-			emojis = emojis.filter((e) => e.id !== emoji.id);
+			animatedEmojis = animatedEmojis.filter((e) => e.id !== emoji.id);
 		}, 2000);
 	}
 </script>
 
-{#if show}
-	<div class="emoji-buttons absolute -top-10 left-1/2 z-10 -translate-x-1/2 select-none">
-		{#each emojiButtons as button}
-			<button
-				class="emoji-button"
-				on:click={() => throwEmoji(button.emoji)}
-				aria-label={button.label}
+<div class="relative">
+	{#if show}
+		<div
+			class="emoji-buttons absolute -top-10 left-1/2 z-10 -translate-x-1/2 select-none"
+			transition:fade
+		>
+			{#each emojiButtons as button}
+				<button
+					class="emoji-button relative"
+					on:click={() => throwEmoji(button.emoji)}
+					aria-label={button.label}
+				>
+					{button.emoji}
+					{#if reactionCounts[button.emoji]}
+						<div
+							class="absolute -right-2 -top-2 rounded-full bg-blue-500 px-1.5 py-0.5 text-xs text-white"
+						>
+							{reactionCounts[button.emoji]}
+						</div>
+					{/if}
+				</button>
+			{/each}
+		</div>
+	{/if}
+
+	<!-- Create a portal container for animations -->
+	<div class="emoji-container">
+		{#each animatedEmojis as emoji (emoji.id)}
+			<div
+				class="emoji"
+				style="--start-x: {emoji.startX}px;
+					   --start-y: {emoji.startY}px;
+					   --collision-x: {emoji.collisionX}px;
+					   --collision-y: {emoji.collisionY}px;
+					   --bounce-x: {emoji.bounceX}px;
+					   --bounce-y: {emoji.bounceY}px;
+					   --rotation: {emoji.rotation}deg;"
 			>
-				{button.emoji}
-			</button>
+				{emoji.content}
+			</div>
 		{/each}
 	</div>
-{/if}
-
-{#each emojis as emoji (emoji.id)}
-	<div
-		class="emoji"
-		style="--start-x: {emoji.startX}px;
-               --start-y: {emoji.startY}px;
-               --collision-x: {emoji.collisionX}px;
-               --collision-y: {emoji.collisionY}px;
-               --bounce-x: {emoji.bounceX}px;
-               --bounce-y: {emoji.bounceY}px;
-               --rotation: {emoji.rotation}deg;"
-	>
-		{emoji.content}
-	</div>
-{/each}
+</div>
 
 <style>
 	.emoji-buttons {
@@ -166,6 +226,16 @@
 
 	.emoji-button:active {
 		transform: scale(0.95);
+	}
+
+	.emoji-container {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		pointer-events: none;
+		z-index: 50;
 	}
 
 	.emoji {
