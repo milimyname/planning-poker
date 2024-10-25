@@ -249,13 +249,28 @@
 			return;
 		}
 
+		console.log('currentUserVotes', latestSession && currentUserVotes?.length === 1);
 		if (latestSession && currentUserVotes?.length === 1) {
-			$updateVoteMutation.mutate({
-				id: currentUserVotes[0].id,
-				playerId: data.currentPlayer.id,
-				sessionId: latestSession.id,
-				...(type === 'basic' ? { estimate: Number(estimate) } : { emoji: estimate })
-			});
+			switch (type) {
+				case 'basic':
+					$updateVoteMutation.mutate({
+						id: currentUserVotes[0].id,
+						playerId: data.currentPlayer.id,
+						sessionId: latestSession.id,
+						emoji: null,
+						estimate: Number(estimate)
+					});
+					break;
+				case 'emoji':
+					$updateVoteMutation.mutate({
+						id: currentUserVotes[0].id,
+						playerId: data.currentPlayer.id,
+						sessionId: latestSession.id,
+						estimate: null,
+						emoji: estimate
+					});
+					break;
+			}
 		} else if (!latestSession) {
 			const session = await $addSessionMutation.mutateAsync({
 				id: uuidv4(),
@@ -277,7 +292,7 @@
 			});
 		}
 
-		toast.success(`You voted ${estimate}.`);
+		toast.success(`You voted ${estimate}`);
 	}
 
 	function reveal() {
@@ -310,6 +325,8 @@
 			gameId: $page.params.slug,
 			status: 'active'
 		});
+
+		$deleteReactionsBySessionIdMutation.mutate(latestSession.id);
 	}
 
 	function startNewGame() {
@@ -337,10 +354,6 @@
 			sessionId: latestSession.id
 		});
 	}
-
-	function clearReactions() {
-		$deleteReactionsBySessionIdMutation.mutate(latestSession.id);
-	}
 </script>
 
 <div class="size-screen h-screen w-full place-content-center pb-20">
@@ -355,7 +368,7 @@
 	{/if}
 
 	<div class="grid place-content-center text-center">
-		<div class=" flex gap-5 py-10">
+		<div class="flex gap-5 py-10">
 			{#each $combinedPlayerGamesStore as playerGame}
 				<Card.Root
 					class={cn(
@@ -401,6 +414,13 @@
 					</Card.Content>
 				</Card.Root>
 			{/each}
+
+			<Card.Root
+				on:click={() => invitePlayer()}
+				class="flex w-32 max-w-52 cursor-pointer items-center justify-center transition-transform hover:scale-105 active:scale-95 active:shadow"
+			>
+				Invite player
+			</Card.Root>
 		</div>
 	</div>
 
@@ -433,10 +453,8 @@
 				</div>
 			</div>
 
-			<div class="grid grid-cols-3 gap-3">
-				<Button on:click={invitePlayer}>Invite new Player</Button>
+			<div class="fixed right-5 top-5">
 				<Button variant="secondary" on:click={startNewGame}>New Game</Button>
-				<Button variant="secondary" on:click={clearReactions}>Clear Reactions</Button>
 			</div>
 		</div>
 	</div>
@@ -451,7 +469,8 @@
 						class={cn(
 							'cursor-pointer transition-transform hover:scale-105 active:scale-95 active:shadow',
 							currentUserVotes.length &&
-								currentUserVotes[0].estimate === Number(card) &&
+								(currentUserVotes[0].estimate === Number(card) ||
+									currentUserVotes[0].emoji === card) &&
 								((latestSession?.status === 'revealed' &&
 									'-translate-y-2 bg-green-500 text-white') ||
 									(latestSession?.status !== 'completed' &&

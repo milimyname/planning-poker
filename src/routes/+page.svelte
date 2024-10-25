@@ -9,7 +9,7 @@
 	import * as Form from '$lib/components/ui/form';
 	import * as Select from '$lib/components/ui/select';
 	import { insertGameSchema, type InsertGame, type InsertPlayer } from '$lib/validators';
-	import { createGame, clearGames } from '$lib/electric-actions/game';
+	import { createGame } from '$lib/electric-actions/game';
 	import { createPlayer } from '$lib/electric-actions/player';
 	import { createMutation } from '@tanstack/svelte-query';
 	import { v4 as uuidv4 } from 'uuid';
@@ -34,11 +34,6 @@
 	const addPlayerMutation = createMutation({
 		mutationFn: (newPlayer: InsertPlayer) => createPlayer(newPlayer),
 		mutationKey: ['add-player']
-	});
-
-	const clearGamesMutation = createMutation({
-		mutationKey: ['clearGames'],
-		mutationFn: clearGames
 	});
 
 	const form = superForm(data.form, {
@@ -66,7 +61,8 @@
 				cards: '1,2,3,5,8,13',
 				status: 'voting',
 				playerName: f.data.playerName, // not needed
-				creatorId: newPlayer[0].value.id
+				creatorId: newPlayer[0].value.id,
+				autoReveal: false
 			});
 
 			await data.updateCurrentPlayer(newPlayer[0].value);
