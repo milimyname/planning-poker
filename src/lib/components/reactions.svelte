@@ -1,12 +1,14 @@
 <script lang="ts">
 	import type { InsertReaction } from '$lib/validators';
 	import { fade } from 'svelte/transition';
+	import EmojiPicker from './emoji-picker.svelte';
 
 	export let targetedCardId: string;
 	export let show: boolean;
 	export let reactions: InsertReaction[];
 	export let handleReaction: (emoji: string) => void;
 
+	let showPicker = false;
 	let animatedEmojis = [];
 	let previousReactions: InsertReaction[] = [];
 
@@ -21,11 +23,18 @@
 
 	const emojiButtons = [
 		{ emoji: '👍', label: 'thumbs up' },
-		{ emoji: '👎', label: 'thumbs down' },
 		{ emoji: '😄', label: 'happy' },
 		{ emoji: '😢', label: 'sad' },
-		{ emoji: '😡', label: 'angry' }
+		{ emoji: '😡', label: 'angry' },
+		{ emoji: '➕', label: 'more' }
 	];
+
+	// Function to handle emoji selection from the picker
+	function onEmojiSelect(event: CustomEvent<{ native: string }>) {
+		const emoji = event.detail.native;
+		showPicker = false;
+		throwEmoji(emoji);
+	}
 
 	// Watch for new reactions for this specific card
 	$: {
@@ -159,7 +168,9 @@
 			{#each emojiButtons as button}
 				<button
 					class="emoji-button relative"
-					on:click={() => throwEmoji(button.emoji)}
+					on:click={() => {
+						button.emoji === '➕' ? (showPicker = !showPicker) : throwEmoji(button.emoji);
+					}}
 					aria-label={button.label}
 				>
 					{button.emoji}
@@ -172,6 +183,12 @@
 					{/if}
 				</button>
 			{/each}
+
+			{#if showPicker}
+				<div class="absolute left-1/2 top-12 z-50 -translate-x-1/2" transition:fade>
+					<EmojiPicker on:emoji-select={onEmojiSelect} />
+				</div>
+			{/if}
 		</div>
 	{/if}
 
