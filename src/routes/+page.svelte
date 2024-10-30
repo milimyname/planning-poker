@@ -154,7 +154,7 @@
 					<SuperDebug data={$formData} />
 				{/if}
 				<Dialog.Footer>
-					<Form.Button disabled={$submitting}>Create</Form.Button>
+					<Form.Button disabled={$submitting || $addGameMutation.isPending}>Create</Form.Button>
 				</Dialog.Footer>
 			</form>
 		</div>

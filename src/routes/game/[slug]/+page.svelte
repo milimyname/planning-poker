@@ -31,7 +31,7 @@
 	import Countdown from '$lib/components/countdown.svelte';
 	import { Switch, Label, Popover } from 'bits-ui';
 	import Reactions from '$lib/components/reactions.svelte';
-	import { randomEmojiGenerator } from '$lib/random-emoji-generator';
+	import { randomEmoji } from '$lib/random-emoji-generator';
 	import {
 		createReaction,
 		reactionShape,
@@ -98,7 +98,7 @@
 	});
 
 	let isHovered: string;
-	let randomEmoji = randomEmojiGenerator();
+	let emoji = randomEmoji();
 
 	// Reactive variables for players and playerGames
 	$: ({ data: players, isLoading: isPlayersLoading } = shapePlayerData);
@@ -129,6 +129,10 @@
 			)
 		};
 	});
+
+	$: activeVote = votes.find(
+		(v) => v.session_id === latestSession?.id && v.player_id === data.currentPlayer.id
+	);
 
 	$: if ($combinedPlayerGamesStore.some((pg) => !pg.player) && $query.data?.length > 0) {
 		$combinedPlayerGamesStore = $combinedPlayerGamesStore.map((pg) => {
@@ -366,6 +370,8 @@
 		});
 
 		$deleteReactionsBySessionIdMutation.mutate(latestSession.id);
+
+		emoji = randomEmoji();
 	}
 
 	function startNewGame() {
@@ -400,7 +406,7 @@
 		<LoadingDots />
 	{/if}
 
-	{#if currentGame?.game?.auto_reveal && latestSession?.status !== 'revealed' && $combinedPlayerGamesStore.find((pg) => pg.activeVote)}
+	{#if currentGame?.game?.auto_reveal && latestSession?.status !== 'revealed' && activeVote}
 		<div class="grid place-content-center text-center">
 			<Countdown {currentGame} handleReveal={reveal} />
 		</div>
@@ -409,16 +415,13 @@
 	<div class="grid place-content-center text-center">
 		{#if latestSession?.status === 'revealed'}
 			<p class="text-center" transition:slide={{ duration: 250, easing: cubicIn }}>
-				Average: {averageEstimateOfCurrentSession ?? '-'}
+				Average: {averageEstimateOfCurrentSession ? averageEstimateOfCurrentSession : '-'}
 			</p>
 		{/if}
 		<div class="flex gap-5 py-10">
 			{#each $combinedPlayerGamesStore as playerGame}
 				<Card.Root
-					class={cn(
-						'relative h-48 w-32 max-w-52',
-						playerGame.activeVote && 'border border-blue-500'
-					)}
+					class={cn('relative h-48 w-32 max-w-52', activeVote && 'border border-blue-500')}
 					on:mouseenter={() => (isHovered = playerGame.player_id)}
 					on:mouseleave={() => (isHovered = '')}
 					id={playerGame.player_id}
@@ -444,11 +447,11 @@
 					<Card.Header class="h-12">{playerGame.player?.name}</Card.Header>
 
 					<Card.Content class="flex h-28 items-center justify-center">
-						{#if playerGame.activeVote && latestSession?.status === 'revealed'}
+						{#if activeVote && latestSession?.status === 'revealed'}
 							<p class="text-7xl font-bold">
-								{playerGame.activeVote.estimate ?? playerGame.activeVote.emoji}
+								{activeVote.estimate ?? activeVote.emoji}
 							</p>
-						{:else if playerGame.activeVote}
+						{:else if activeVote}
 							<p>Done...</p>
 						{:else if latestSession?.status !== 'revealed'}
 							<LoadingDots />
@@ -501,10 +504,10 @@
 	{#if currentGame?.game?.cards}
 		<div class="grid place-content-center">
 			<div class="flex gap-5 py-10">
-				{#each [...currentGame?.game.cards.split(','), randomEmoji] as card}
+				{#each [...currentGame?.game.cards.split(','), emoji] as card}
 					<Card.Root
 						on:click={() =>
-							randomEmoji !== card ? handleVote(card, 'basic') : handleVote(randomEmoji, 'emoji')}
+							emoji !== card ? handleVote(card, 'basic') : handleVote(emoji, 'emoji')}
 						class={cn(
 							'cursor-pointer transition-transform hover:scale-105 active:scale-95 active:shadow',
 							currentUserVotes.length &&
@@ -524,10 +527,10 @@
 	{:else}
 		<div class="grid place-content-center">
 			<div class="flex gap-5 py-10">
-				{#each [1, 2, 3, 5, 8, 13, 21, randomEmoji] as card}
+				{#each [1, 2, 3, 5, 8, 13, 21, emoji] as card}
 					<Card.Root
 						on:click={() =>
-							randomEmoji !== card ? handleVote(card, 'basic') : handleVote(randomEmoji, 'emoji')}
+							emoji !== card ? handleVote(card, 'basic') : handleVote(emoji, 'emoji')}
 						class={cn(
 							'cursor-pointer transition-transform hover:scale-105 active:scale-95 active:shadow',
 							currentUserVotes.length &&
