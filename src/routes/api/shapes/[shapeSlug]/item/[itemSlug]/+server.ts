@@ -71,3 +71,21 @@ export const PUT = async ({ params, request }) => {
 		return json({ error: `Failed to update ${shapeSlug}` }, { status: 500 });
 	}
 };
+
+export const GET = async ({ params }) => {
+	const { shapeSlug, itemSlug } = params;
+	const shape = shapeMap[shapeSlug];
+
+	if (!shape) return json({ error: `Invalid shape: ${shapeSlug}` }, { status: 400 });
+
+	if (!itemSlug) return json({ error: `Invalid ID: ${itemSlug}` }, { status: 400 });
+
+	try {
+		const item = await db.select().from(shape).where(eq(shape.id, itemSlug));
+
+		return json(item, { status: 200 });
+	} catch (error) {
+		console.error(`Error getting ${shapeSlug}:`, error);
+		return json({ error: `Failed to get ${shapeSlug}` }, { status: 500 });
+	}
+};

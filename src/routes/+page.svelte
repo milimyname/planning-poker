@@ -46,32 +46,41 @@
 				return;
 			}
 
-			toast.success(`You created a new session: ${f.data.name}`);
+			const createSession = async () => {
+				const newPlayer = await $addPlayerMutation.mutateAsync({
+					id: uuidv4(),
+					name: f.data.playerName
+				});
 
-			const newPlayer = await $addPlayerMutation.mutateAsync({
-				id: uuidv4(),
-				name: f.data.playerName
+				localStorage.setItem('currentPlayer', JSON.stringify(newPlayer[0].value));
+
+				const newGame = await $addGameMutation.mutateAsync({
+					id: uuidv4(),
+					name: f.data.name,
+					cards: '1,2,3,5,8,13',
+					status: 'voting',
+					creatorId: newPlayer[0].value.id,
+					autoReveal: false,
+					playerName: f.data.playerName
+				});
+
+				await data.updateCurrentPlayer(newPlayer[0].value);
+
+				return { player: newPlayer[0].value, game: newGame[0].value };
+			};
+
+			toast.promise(createSession(), {
+				loading: 'Creating session...',
+				success: (data) => `Created new session: ${data.game.name}`,
+				error: 'Failed to create session. Please try again.'
 			});
 
-			localStorage.setItem('currentPlayer', JSON.stringify(newPlayer[0].value));
-
-			const newGame = await $addGameMutation.mutateAsync({
-				id: uuidv4(),
-				name: f.data.name,
-				cards: '1,2,3,5,8,13',
-				status: 'voting',
-				playerName: f.data.playerName, // not needed
-				creatorId: newPlayer[0].value.id,
-				autoReveal: false
-			});
-
-			await data.updateCurrentPlayer(newPlayer[0].value);
-
-			goto(`/game/${newGame[0].value.id}`);
+			const result = await createSession();
+			goto(`/game/${result.game.id}`);
 		}
 	});
 
-	const { form: formData, enhance } = form;
+	const { form: formData, enhance, submitting } = form;
 
 	$: selectedCards = $formData.cards
 		? {
@@ -81,6 +90,10 @@
 		: undefined;
 
 	$: if (open) $formData.id = uuidv4();
+
+	$: if (submitting) {
+		toast.info('Creating session...');
+	}
 </script>
 
 <Dialog.Root bind:open>
@@ -141,7 +154,7 @@
 					<SuperDebug data={$formData} />
 				{/if}
 				<Dialog.Footer>
-					<Form.Button>Save changes</Form.Button>
+					<Form.Button disabled={$submitting}>Create</Form.Button>
 				</Dialog.Footer>
 			</form>
 		</div>

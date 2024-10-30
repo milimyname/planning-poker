@@ -37,6 +37,8 @@
 		reactionShape,
 		clearReactionsBySessionId
 	} from '$lib/electric-actions/reaction';
+	import { slide } from 'svelte/transition';
+	import { cubicIn } from 'svelte/easing';
 
 	export let data;
 
@@ -90,6 +92,11 @@
 		queryFn: async () => (await fetch('/api/shapes/players')).json()
 	});
 
+	const queryCurrentGame = createQuery({
+		queryKey: ['game', $page.params.slug],
+		queryFn: async () => (await fetch(`/api/shapes/games/item/${$page.params.slug}`)).json()
+	});
+
 	let isHovered: string;
 	let randomEmoji = randomEmojiGenerator();
 
@@ -132,6 +139,17 @@
 		});
 	}
 
+	$: if ($combinedPlayerGamesStore.some((pg) => !pg.game) && $queryCurrentGame.data) {
+		$combinedPlayerGamesStore = $combinedPlayerGamesStore.map((pg) => {
+			return {
+				...pg,
+				game: $queryCurrentGame.data
+			};
+		});
+	}
+
+	$: currentGame = $combinedPlayerGamesStore.find((pg) => pg.game_id === $page.params.slug);
+
 	$: isLoading =
 		isPlayerGamesLoading || isGameLoading || isPlayersLoading || isSessionsLoading || isVoteLoading;
 
@@ -139,8 +157,6 @@
 		(pg) =>
 			pg.player_id === data?.currentPlayer.id && pg.is_creator && pg.game_id === $page.params.slug
 	);
-
-	$: currentGame = $combinedPlayerGamesStore.find((pg) => pg.game_id === $page.params.slug);
 
 	$: latestSession = sessions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
 
@@ -205,7 +221,10 @@
 
 	const updateVoteMutation = createMutation({
 		mutationFn: (vote: InsertVote) => updateVote(vote),
-		mutationKey: ['update-vote']
+		mutationKey: ['update-vote'],
+		onError: (error) => {
+			toast.error(error.message);
+		}
 	});
 
 	const addSessionMutation = createMutation({
@@ -220,7 +239,18 @@
 
 	const updateSessionMutation = createMutation({
 		mutationFn: (session: InsertSession) => updateSession(session),
-		mutationKey: ['update-session']
+		mutationKey: ['update-session'],
+		onMutate: () => {
+			toast('Revealing session...');
+		},
+		onError: () => {
+			toast.error('Could not reveal the session. Please try again or restart the session.', {
+				action: {
+					label: 'Restart',
+					onClick: () => restart()
+				}
+			});
+		}
 	});
 
 	const updateGameMutation = createMutation({
@@ -249,7 +279,16 @@
 			return;
 		}
 
-		console.log('currentUserVotes', latestSession && currentUserVotes?.length === 1);
+		// if estimate is already casted, show a toast message
+		if (
+			(currentUserVotes[0]?.estimate === Number(estimate) ||
+				currentUserVotes[0]?.emoji === estimate) &&
+			latestSession.status !== 'completed'
+		) {
+			toast.error('You already voted this estimate.');
+			return;
+		}
+
 		if (latestSession && currentUserVotes?.length === 1) {
 			switch (type) {
 				case 'basic':
@@ -368,11 +407,16 @@
 	{/if}
 
 	<div class="grid place-content-center text-center">
+		{#if latestSession?.status === 'revealed'}
+			<p class="text-center" transition:slide={{ duration: 250, easing: cubicIn }}>
+				Average: {averageEstimateOfCurrentSession ?? '-'}
+			</p>
+		{/if}
 		<div class="flex gap-5 py-10">
 			{#each $combinedPlayerGamesStore as playerGame}
 				<Card.Root
 					class={cn(
-						'relative h-fit w-32 max-w-52',
+						'relative h-48 w-32 max-w-52',
 						playerGame.activeVote && 'border border-blue-500'
 					)}
 					on:mouseenter={() => (isHovered = playerGame.player_id)}
@@ -397,9 +441,9 @@
 						</Button>
 					{/if}
 
-					<Card.Header>{playerGame.player?.name}</Card.Header>
+					<Card.Header class="h-12">{playerGame.player?.name}</Card.Header>
 
-					<Card.Content>
+					<Card.Content class="flex h-28 items-center justify-center">
 						{#if playerGame.activeVote && latestSession?.status === 'revealed'}
 							<p class="text-7xl font-bold">
 								{playerGame.activeVote.estimate ?? playerGame.activeVote.emoji}
@@ -414,22 +458,10 @@
 					</Card.Content>
 				</Card.Root>
 			{/each}
-
-			<Card.Root
-				on:click={() => invitePlayer()}
-				class="flex w-32 max-w-52 cursor-pointer items-center justify-center transition-transform hover:scale-105 active:scale-95 active:shadow"
-			>
-				Invite player
-			</Card.Root>
 		</div>
 	</div>
 
 	<div class="grid w-full place-content-center gap-10">
-		<div>
-			{#if latestSession?.status === 'revealed'}
-				<p class="text-center">Average: {averageEstimateOfCurrentSession}</p>
-			{/if}
-		</div>
 		<div class="grid grid-rows-2 gap-5">
 			<div class="grid grid-cols-2 gap-5">
 				{#if latestSession?.status === 'revealed'}
@@ -453,16 +485,46 @@
 				</div>
 			</div>
 
-			<div class="fixed right-5 top-5">
+			<div class="fixed right-5 top-5 flex gap-2">
 				<Button variant="secondary" on:click={startNewGame}>New Game</Button>
+
+				<Button
+					on:click={() => invitePlayer()}
+					class="flex cursor-pointer items-center justify-center transition-transform hover:scale-105 active:scale-95 active:shadow"
+				>
+					Invite player
+				</Button>
 			</div>
 		</div>
 	</div>
 
-	{#if currentGame?.game?.cards && !isLoading}
+	{#if currentGame?.game?.cards}
 		<div class="grid place-content-center">
 			<div class="flex gap-5 py-10">
 				{#each [...currentGame?.game.cards.split(','), randomEmoji] as card}
+					<Card.Root
+						on:click={() =>
+							randomEmoji !== card ? handleVote(card, 'basic') : handleVote(randomEmoji, 'emoji')}
+						class={cn(
+							'cursor-pointer transition-transform hover:scale-105 active:scale-95 active:shadow',
+							currentUserVotes.length &&
+								(currentUserVotes[0].estimate === Number(card) ||
+									currentUserVotes[0].emoji === card) &&
+								((latestSession?.status === 'revealed' &&
+									'-translate-y-2 bg-green-500 text-white') ||
+									(latestSession?.status !== 'completed' &&
+										'-translate-y-2 animate-bounce bg-green-500 text-white'))
+						)}
+					>
+						<Card.Content>{card}</Card.Content>
+					</Card.Root>
+				{/each}
+			</div>
+		</div>
+	{:else}
+		<div class="grid place-content-center">
+			<div class="flex gap-5 py-10">
+				{#each [1, 2, 3, 5, 8, 13, 21, randomEmoji] as card}
 					<Card.Root
 						on:click={() =>
 							randomEmoji !== card ? handleVote(card, 'basic') : handleVote(randomEmoji, 'emoji')}
