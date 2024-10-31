@@ -130,10 +130,6 @@
 		};
 	});
 
-	$: activeVote = votes.find(
-		(v) => v.session_id === latestSession?.id && v.player_id === data.currentPlayer.id
-	);
-
 	$: if ($combinedPlayerGamesStore.some((pg) => !pg.player) && $query.data?.length > 0) {
 		$combinedPlayerGamesStore = $combinedPlayerGamesStore.map((pg) => {
 			return {
@@ -406,7 +402,7 @@
 		<LoadingDots />
 	{/if}
 
-	{#if currentGame?.game?.auto_reveal && latestSession?.status !== 'revealed' && activeVote}
+	{#if currentGame?.game?.auto_reveal && latestSession?.status !== 'revealed'}
 		<div class="grid place-content-center text-center">
 			<Countdown {currentGame} handleReveal={reveal} />
 		</div>
@@ -421,7 +417,10 @@
 		<div class="flex gap-5 py-10">
 			{#each $combinedPlayerGamesStore as playerGame}
 				<Card.Root
-					class={cn('relative h-48 w-32 max-w-52', activeVote && 'border border-blue-500')}
+					class={cn(
+						'relative h-48 w-32 max-w-52',
+						playerGame.activeVote && 'border border-blue-500'
+					)}
 					on:mouseenter={() => (isHovered = playerGame.player_id)}
 					on:mouseleave={() => (isHovered = '')}
 					id={playerGame.player_id}
@@ -447,11 +446,11 @@
 					<Card.Header class="h-12">{playerGame.player?.name}</Card.Header>
 
 					<Card.Content class="flex h-28 items-center justify-center">
-						{#if activeVote && latestSession?.status === 'revealed'}
+						{#if playerGame.activeVote && latestSession?.status === 'revealed'}
 							<p class="text-7xl font-bold">
-								{activeVote.estimate ?? activeVote.emoji}
+								{playerGame.activeVote.estimate ?? playerGame.activeVote.emoji}
 							</p>
-						{:else if activeVote}
+						{:else if playerGame.activeVote}
 							<p>Done...</p>
 						{:else if latestSession?.status !== 'revealed'}
 							<LoadingDots />
