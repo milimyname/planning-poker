@@ -1,9 +1,7 @@
 <script lang="ts">
-	import { createShapeStore, type ShapeStoreData } from '$lib/electric-store';
-	import { createMutation, createQuery } from '@tanstack/svelte-query';
+	import { createMutation } from '@tanstack/svelte-query';
 	import { onMount } from 'svelte';
-	import { writable } from 'svelte/store';
-	import { playerShape, deletePlayer } from '$lib/electric-actions/player';
+	import { deletePlayer } from '$lib/electric-actions/player';
 	import {
 		type InsertVote,
 		type Player,
@@ -19,146 +17,100 @@
 	import { page } from '$app/stores';
 	import { toast } from 'svelte-sonner';
 	import * as Card from '$lib/components/ui/card';
-	import { playerGamesWithWhereSchema } from '$lib/electric-actions/playerGames';
-	import { gameShape, updateGame } from '$lib/electric-actions/game';
-	import { createVote, updateVote, voteShape } from '$lib/electric-actions/vote';
+	import { updateGame } from '$lib/electric-actions/game';
+	import { createVote, updateVote } from '$lib/electric-actions/vote';
 	import { v4 as uuidv4 } from 'uuid';
-	import { createSession, sessionShape, updateSession } from '$lib/electric-actions/session.js';
+	import { createSession, updateSession } from '$lib/electric-actions/session.js';
 	import { cn } from '$lib/utils';
 	import { goto } from '$app/navigation';
 	import { CircleX } from 'lucide-svelte';
 	import LoadingDots from '$lib/components/loading-dots.svelte';
 	import Countdown from '$lib/components/countdown.svelte';
-	import { Switch, Label, Popover } from 'bits-ui';
+	import { Switch, Label } from 'bits-ui';
 	import Reactions from '$lib/components/reactions.svelte';
 	import { randomEmoji } from '$lib/random-emoji-generator';
-	import {
-		createReaction,
-		reactionShape,
-		clearReactionsBySessionId
-	} from '$lib/electric-actions/reaction';
+	import { createReaction, clearReactionsBySessionId } from '$lib/electric-actions/reaction';
 	import { slide } from 'svelte/transition';
 	import { cubicIn } from 'svelte/easing';
+	import { ShapeStream, Shape } from '@electric-sql/client';
 
-	export let data;
-
-	const shapePlayerStore = createShapeStore<Player>(playerShape());
-	const shapePlayerGamesStore = createShapeStore<PlayerGames>(
-		playerGamesWithWhereSchema($page.params.slug)
-	);
-	const shapeGameStore = createShapeStore<Game>(gameShape());
-	const shapeSessionStore = createShapeStore<Session>(sessionShape());
-	const shapeVoteStore = createShapeStore<InsertVote>(voteShape());
-	const shapeReactionStore = createShapeStore(reactionShape());
-
-	let shapePlayerData: ShapeStoreData<Player> = {
-		data: [],
-		isLoading: true,
-		error: null
-	};
-
-	let shapePlayerGamesData: ShapeStoreData<PlayerGames> = {
-		data: [],
-		isLoading: true,
-		error: null
-	};
-
-	let shapeGameData: ShapeStoreData<Game> = {
-		data: [],
-		isLoading: true,
-		error: null
-	};
-
-	let shapeSessionData: ShapeStoreData<Session> = {
-		data: [],
-		isLoading: true,
-		error: null
-	};
-
-	let shapeVoteData: ShapeStoreData<InsertVote> = {
-		data: [],
-		isLoading: true,
-		error: null
-	};
-
-	let shapeReactionData: ShapeStoreData = {
-		data: [],
-		isLoading: true,
-		error: null
-	};
-
-	const query = createQuery({
-		queryKey: ['players'],
-		queryFn: async () => (await fetch('/api/shapes/players')).json()
-	});
-
-	const queryCurrentGame = createQuery({
-		queryKey: ['game', $page.params.slug],
-		queryFn: async () => (await fetch(`/api/shapes/games/item/${$page.params.slug}`)).json()
-	});
+	let players: Player[];
+	let playerGames: PlayerGames[];
+	let games: Game[];
+	let sessions: Session[];
+	let votes: InsertVote[];
+	let reactions: InsertReaction[] = [];
 
 	let isHovered: string;
 	let emoji = randomEmoji();
 
-	// Reactive variables for players and playerGames
-	$: ({ data: players, isLoading: isPlayersLoading } = shapePlayerData);
-	$: ({ data: playerGames, isLoading: isPlayerGamesLoading } = shapePlayerGamesData);
-	$: ({ data: games, isLoading: isGameLoading } = shapeGameData);
-	$: ({ data: sessions, isLoading: isSessionsLoading } = shapeSessionData);
-	$: ({ data: votes, isLoading: isVoteLoading } = shapeVoteData);
-	$: ({ data: reactions, isLoading: isReactionLoading } = shapeReactionData);
+	const playerStream = new ShapeStream({
+		url: `http://localhost:3000/v1/shape`,
+		table: 'players'
+	});
 
-	const combinedPlayerGamesStore = writable<
-		{
-			player: Player;
-			game: Game;
-			sessions: Session[];
-			activeVote: InsertVote;
-			player_id: string;
-		}[]
-	>([]);
+	const playerShape = new Shape(playerStream);
 
-	$: $combinedPlayerGamesStore = playerGames?.map((pg) => {
+	const playerGamesStream = new ShapeStream({
+		url: `http://localhost:3000/v1/shape`,
+		table: 'player_games',
+		where: `game_id='${$page.params.slug}'`
+	});
+
+	const playerGamesShape = new Shape(playerGamesStream);
+
+	const gameStream = new ShapeStream({
+		url: `http://localhost:3000/v1/shape`,
+		table: 'games'
+	});
+
+	const gameShape = new Shape(gameStream);
+
+	const sessionStream = new ShapeStream({
+		url: `http://localhost:3000/v1/shape`,
+		table: 'sessions'
+	});
+
+	const sessionShape = new Shape(sessionStream);
+
+	const reactionStream = new ShapeStream({
+		url: `http://localhost:3000/v1/shape`,
+		table: 'reactions'
+	});
+
+	const reactionShape = new Shape(reactionStream);
+
+	const voteStream = new ShapeStream({
+		url: `http://localhost:3000/v1/shape`,
+		table: 'votes'
+	});
+
+	const voteShape = new Shape(voteStream);
+
+	export let data;
+
+	$: combinedPlayerGamesStore = playerGames?.map((pg) => {
 		return {
 			...pg,
-			player: players.find((p) => p.id === pg.player_id),
-			game: games.find((g) => g.id === pg.game_id),
+			player: players?.find((p) => p.id === pg.player_id),
+			game: games?.find((g) => g.id === pg.game_id),
 			sessions: sessions?.filter((s) => s.game_id === pg.game_id),
-			activeVote: votes.find(
+			activeVote: votes?.find(
 				(v) => v.session_id === latestSession?.id && v.player_id === pg.player_id
 			)
 		};
 	});
 
-	$: if ($combinedPlayerGamesStore.some((pg) => !pg.player) && $query.data?.length > 0) {
-		$combinedPlayerGamesStore = $combinedPlayerGamesStore.map((pg) => {
-			return {
-				...pg,
-				player: $query.data.find((p) => p.id === pg.player_id)
-			};
-		});
-	}
+	let isLoading = false;
 
-	$: if ($combinedPlayerGamesStore.some((pg) => !pg.game) && $queryCurrentGame.data) {
-		$combinedPlayerGamesStore = $combinedPlayerGamesStore.map((pg) => {
-			return {
-				...pg,
-				game: $queryCurrentGame.data
-			};
-		});
-	}
-
-	$: currentGame = $combinedPlayerGamesStore.find((pg) => pg.game_id === $page.params.slug);
-
-	$: isLoading =
-		isPlayerGamesLoading || isGameLoading || isPlayersLoading || isSessionsLoading || isVoteLoading;
-
-	$: isCreator = playerGames.some(
+	$: isCreator = playerGames?.some(
 		(pg) =>
 			pg.player_id === data?.currentPlayer.id && pg.is_creator && pg.game_id === $page.params.slug
 	);
 
-	$: latestSession = sessions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+	$: currentGame = combinedPlayerGamesStore?.find((pg) => pg.game_id === $page.params.slug);
+
+	$: latestSession = sessions?.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
 
 	$: currentUserVotes = votes?.filter(
 		(v) => v.player_id === data.currentPlayer.id && v.session_id === latestSession?.id
@@ -168,40 +120,37 @@
 		votes
 			?.filter((v) => v.session_id === latestSession?.id)
 			.reduce((acc, vote) => acc + vote.estimate, 0) /
-			votes?.filter((v) => v.session_id === latestSession?.id && v.estimate).length
+			votes?.filter((v) => v.session_id === latestSession?.id && v.estimate)?.length
 	);
 
 	onMount(() => {
-		shapeGameStore.subscribe((value) => {
-			shapeGameData = value;
+		playerGamesShape.subscribe((data) => {
+			playerGames = data.rows;
 		});
 
-		shapePlayerGamesStore.subscribe((value) => {
-			shapePlayerGamesData = value;
+		sessionShape.subscribe((data) => {
+			sessions = data.rows;
 		});
 
-		shapeSessionStore.subscribe((value) => {
-			shapeSessionData = value;
+		voteShape.subscribe((value) => {
+			votes = value.rows;
 		});
 
-		shapeVoteStore.subscribe((value) => {
-			shapeVoteData = value;
+		sessionShape.subscribe((data) => {
+			sessions = data.rows;
 		});
 
-		shapePlayerStore.subscribe((value) => {
-			shapePlayerData = value;
+		playerShape.subscribe((data) => {
+			players = data.rows;
 		});
 
-		shapeReactionStore.subscribe((value) => {
-			shapeReactionData = value;
+		gameShape.subscribe((data) => {
+			games = data.rows;
 		});
 
-		shapePlayerStore.init();
-		shapePlayerGamesStore.init();
-		shapeGameStore.init();
-		shapeSessionStore.init();
-		shapeVoteStore.init();
-		shapeReactionStore.init();
+		reactionShape.subscribe((data) => {
+			reactions = data.rows;
+		});
 	});
 
 	const deletePlayerMutation = createMutation({
@@ -402,7 +351,7 @@
 		<LoadingDots />
 	{/if}
 
-	{#if currentGame?.game?.auto_reveal && latestSession?.status !== 'revealed'}
+	{#if currentGame?.game?.auto_reveal && latestSession?.status !== 'revealed' && combinedPlayerGamesStore?.find((pg) => pg.activeVote)}
 		<div class="grid place-content-center text-center">
 			<Countdown {currentGame} handleReveal={reveal} />
 		</div>
@@ -415,51 +364,53 @@
 			</p>
 		{/if}
 		<div class="flex gap-5 py-10">
-			{#each $combinedPlayerGamesStore as playerGame}
-				<Card.Root
-					class={cn(
-						'relative h-48 w-32 max-w-52',
-						playerGame.activeVote && 'border border-blue-500'
-					)}
-					on:mouseenter={() => (isHovered = playerGame.player_id)}
-					on:mouseleave={() => (isHovered = '')}
-					id={playerGame.player_id}
-				>
-					<Reactions
-						targetedCardId={playerGame.player_id}
-						show={isHovered === playerGame.player_id}
-						{handleReaction}
-						{reactions}
-					/>
+			{#if combinedPlayerGamesStore}
+				{#each combinedPlayerGamesStore as playerGame}
+					<Card.Root
+						class={cn(
+							'relative h-48 w-32 max-w-52',
+							playerGame.activeVote && 'border border-blue-500'
+						)}
+						on:mouseenter={() => (isHovered = playerGame.player_id)}
+						on:mouseleave={() => (isHovered = '')}
+						id={playerGame.player_id}
+					>
+						<Reactions
+							targetedCardId={playerGame.player_id}
+							show={isHovered === playerGame.player_id}
+							{handleReaction}
+							{reactions}
+						/>
 
-					{#if playerGame.player_id !== data.currentPlayer.id && $combinedPlayerGamesStore.length > 1 && isCreator}
-						<Button
-							variant="destructive"
-							size="icon"
-							on:click={() => $deletePlayerMutation.mutate(playerGame.player)}
-							class="absolute -right-2 -top-2 rounded-full"
-						>
-							<CircleX class="size-4" />
-						</Button>
-					{/if}
-
-					<Card.Header class="h-12">{playerGame.player?.name}</Card.Header>
-
-					<Card.Content class="flex h-28 items-center justify-center">
-						{#if playerGame.activeVote && latestSession?.status === 'revealed'}
-							<p class="text-7xl font-bold">
-								{playerGame.activeVote.estimate ?? playerGame.activeVote.emoji}
-							</p>
-						{:else if playerGame.activeVote}
-							<p>Done...</p>
-						{:else if latestSession?.status !== 'revealed'}
-							<LoadingDots />
-						{:else}
-							<p class="text-7xl font-bold">-</p>
+						{#if playerGame.player_id !== data.currentPlayer.id && combinedPlayerGamesStore.length > 1 && isCreator}
+							<Button
+								variant="destructive"
+								size="icon"
+								on:click={() => $deletePlayerMutation.mutate(playerGame.player)}
+								class="absolute -right-2 -top-2 rounded-full"
+							>
+								<CircleX class="size-4" />
+							</Button>
 						{/if}
-					</Card.Content>
-				</Card.Root>
-			{/each}
+
+						<Card.Header class="h-12">{playerGame.player?.name}</Card.Header>
+
+						<Card.Content class="flex h-28 items-center justify-center">
+							{#if playerGame.activeVote && latestSession?.status === 'revealed'}
+								<p class="text-7xl font-bold">
+									{playerGame.activeVote.estimate ?? playerGame.activeVote.emoji}
+								</p>
+							{:else if playerGame.activeVote}
+								<p>Done...</p>
+							{:else if latestSession?.status !== 'revealed'}
+								<LoadingDots />
+							{:else}
+								<p class="text-7xl font-bold">-</p>
+							{/if}
+						</Card.Content>
+					</Card.Root>
+				{/each}
+			{/if}
 		</div>
 	</div>
 
@@ -509,30 +460,7 @@
 							emoji !== card ? handleVote(card, 'basic') : handleVote(emoji, 'emoji')}
 						class={cn(
 							'cursor-pointer transition-transform hover:scale-105 active:scale-95 active:shadow',
-							currentUserVotes.length &&
-								(currentUserVotes[0].estimate === Number(card) ||
-									currentUserVotes[0].emoji === card) &&
-								((latestSession?.status === 'revealed' &&
-									'-translate-y-2 bg-green-500 text-white') ||
-									(latestSession?.status !== 'completed' &&
-										'-translate-y-2 animate-bounce bg-green-500 text-white'))
-						)}
-					>
-						<Card.Content>{card}</Card.Content>
-					</Card.Root>
-				{/each}
-			</div>
-		</div>
-	{:else}
-		<div class="grid place-content-center">
-			<div class="flex gap-5 py-10">
-				{#each [1, 2, 3, 5, 8, 13, 21, emoji] as card}
-					<Card.Root
-						on:click={() =>
-							emoji !== card ? handleVote(card, 'basic') : handleVote(emoji, 'emoji')}
-						class={cn(
-							'cursor-pointer transition-transform hover:scale-105 active:scale-95 active:shadow',
-							currentUserVotes.length &&
+							currentUserVotes?.length &&
 								(currentUserVotes[0].estimate === Number(card) ||
 									currentUserVotes[0].emoji === card) &&
 								((latestSession?.status === 'revealed' &&

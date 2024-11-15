@@ -4,11 +4,11 @@ import { type InsertPlayerGame } from '$lib/validators';
 import { BASE_URL, BASE_API_URL } from '$lib/constants';
 
 export const playerGamesShape = () => ({
-	url: new URL(`/v1/shape/player_games`, BASE_URL).href
+	url: new URL(`/v1/shape?table=player_games`, BASE_URL).href
 });
 
 export const playerGamesWithWhereSchema = (id: string) => ({
-	url: new URL('/v1/shape/player_games', BASE_URL).href,
+	url: new URL('/v1/shape?table=player_games', BASE_URL).href,
 	where: `game_id='${id}'`
 });
 

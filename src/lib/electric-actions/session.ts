@@ -4,7 +4,7 @@ import { type InsertSession } from '$lib/validators';
 import { BASE_URL, BASE_API_URL } from '$lib/constants';
 
 export const sessionShape = () => ({
-	url: new URL(`/v1/shape/sessions`, BASE_URL).href
+	url: new URL(`/v1/shape?table=sessions`, BASE_URL).href
 });
 
 export async function createSession(session: InsertSession) {

@@ -4,7 +4,7 @@ import { type InsertVote } from '$lib/validators';
 import { BASE_URL, BASE_API_URL } from '$lib/constants';
 
 export const voteShape = () => ({
-	url: new URL(`/v1/shape/votes`, BASE_URL).href
+	url: new URL(`/v1/shape?table=votes`, BASE_URL).href
 });
 
 export async function createVote(vote: InsertVote) {

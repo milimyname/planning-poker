@@ -4,7 +4,7 @@ import { matchStream } from '$lib/match-stream';
 import { type InsertPlayer } from '$lib/validators';
 
 export const playerShape = (where?: string) => ({
-	url: new URL(`/v1/shape/players?${where}`, BASE_URL).href
+	url: new URL(`/v1/shape?table=players&${where}`, BASE_URL).href
 });
 
 export async function createPlayer(player: InsertPlayer) {

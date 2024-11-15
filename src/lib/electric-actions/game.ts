@@ -4,7 +4,7 @@ import { type InsertGame, type UpdateGame } from '$lib/validators';
 import { BASE_URL, BASE_API_URL } from '$lib/constants';
 
 export const gameShape = () => ({
-	url: new URL(`/v1/shape/games`, BASE_URL).href
+	url: new URL(`/v1/shape?table=games`, BASE_URL).href
 });
 
 export async function createGame(game: InsertGame) {

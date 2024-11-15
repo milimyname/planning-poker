@@ -69,13 +69,17 @@
 				return { player: newPlayer[0].value, game: newGame[0].value };
 			};
 
-			toast.promise(createSession(), {
+			// Create the session once and store the promise
+			const sessionPromise = createSession();
+
+			// Use the same promise for both the toast and navigation
+			toast.promise(sessionPromise, {
 				loading: 'Creating session...',
 				success: (data) => `Created new session: ${data.game.name}`,
 				error: 'Failed to create session. Please try again.'
 			});
 
-			const result = await createSession();
+			const result = await sessionPromise;
 			goto(`/game/${result.game.id}`);
 		}
 	});

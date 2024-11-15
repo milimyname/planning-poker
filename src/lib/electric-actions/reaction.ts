@@ -4,7 +4,7 @@ import { matchStream } from '$lib/match-stream';
 import { type InsertReaction } from '$lib/validators';
 
 export const reactionShape = (where?: string) => ({
-	url: new URL(`/v1/shape/reactions?${where}`, BASE_URL).href
+	url: new URL(`/v1/shape?table=reactions&${where}`, BASE_URL).href
 });
 
 export async function createReaction(reaction: InsertReaction) {
