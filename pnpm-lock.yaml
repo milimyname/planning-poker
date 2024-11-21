@@ -15,7 +15,7 @@ importers:
         specifier: ^1.2.1
         version: 1.2.1
       '@radically-straightforward/caddy':
-        specifier: ^2.0.2
+        specifier: ^2.0.4
         version: 2.0.4
       '@tanstack/svelte-query':
         specifier: ^5.59.16
