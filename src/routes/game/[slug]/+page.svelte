@@ -33,6 +33,7 @@
 	import { slide } from 'svelte/transition';
 	import { cubicIn } from 'svelte/easing';
 	import { ShapeStream, Shape } from '@electric-sql/client';
+	import { BASE_URL } from '$lib/constants.js';
 
 	let players: Player[];
 	let playerGames: PlayerGames[];
@@ -45,14 +46,14 @@
 	let emoji = randomEmoji();
 
 	const playerStream = new ShapeStream({
-		url: `http://localhost:3000/v1/shape`,
+		url: `${BASE_URL}/v1/shape`,
 		table: 'players'
 	});
 
 	const playerShape = new Shape(playerStream);
 
 	const playerGamesStream = new ShapeStream({
-		url: `http://localhost:3000/v1/shape`,
+		url: `${BASE_URL}/v1/shape`,
 		table: 'player_games',
 		where: `game_id='${$page.params.slug}'`
 	});
@@ -60,28 +61,28 @@
 	const playerGamesShape = new Shape(playerGamesStream);
 
 	const gameStream = new ShapeStream({
-		url: `http://localhost:3000/v1/shape`,
+		url: `${BASE_URL}/v1/shape`,
 		table: 'games'
 	});
 
 	const gameShape = new Shape(gameStream);
 
 	const sessionStream = new ShapeStream({
-		url: `http://localhost:3000/v1/shape`,
+		url: `${BASE_URL}/v1/shape`,
 		table: 'sessions'
 	});
 
 	const sessionShape = new Shape(sessionStream);
 
 	const reactionStream = new ShapeStream({
-		url: `http://localhost:3000/v1/shape`,
+		url: `${BASE_URL}/v1/shape`,
 		table: 'reactions'
 	});
 
 	const reactionShape = new Shape(reactionStream);
 
 	const voteStream = new ShapeStream({
-		url: `http://localhost:3000/v1/shape`,
+		url: `${BASE_URL}/v1/shape`,
 		table: 'votes'
 	});
 
