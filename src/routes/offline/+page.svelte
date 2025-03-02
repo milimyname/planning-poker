@@ -1,7 +1,13 @@
 <script>
 	import { onMount } from 'svelte';
 
+	/**
+	 * @type {HTMLDivElement}
+	 */
 	let targetCard;
+	/**
+	 * @type {any[]}
+	 */
 	let emojis = [];
 	let containerRef;
 
@@ -33,6 +39,10 @@
 		return position;
 	}
 
+	/**
+	 * @param {{ x: any; y: any; }} start
+	 * @param {{ getBoundingClientRect: () => any; }} target
+	 */
 	function calculateCollisionPoint(start, target) {
 		const targetBounds = target.getBoundingClientRect();
 
@@ -108,7 +118,9 @@
 	}
 </script>
 
-<div class="container" bind:this={containerRef} on:click={throwEmoji}>
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<div class="container" bind:this={containerRef} onclick={throwEmoji}>
 	{#each emojis as emoji (emoji.id)}
 		<div
 			class="emoji"

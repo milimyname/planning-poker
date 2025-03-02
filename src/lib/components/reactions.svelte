@@ -168,7 +168,7 @@
 			{#each emojiButtons as button}
 				<button
 					class="emoji-button relative"
-					on:click={() => {
+					onclick={() => {
 						button.emoji === '➕' ? (showPicker = !showPicker) : throwEmoji(button.emoji);
 					}}
 					aria-label={button.label}

@@ -372,8 +372,8 @@
 							'relative h-48 w-32 max-w-52',
 							playerGame.activeVote && 'border border-blue-500'
 						)}
-						on:mouseenter={() => (isHovered = playerGame.player_id)}
-						on:mouseleave={() => (isHovered = '')}
+						onmouseenter={() => (isHovered = playerGame.player_id)}
+						onmouseleave={() => (isHovered = '')}
 						id={playerGame.player_id}
 					>
 						<Reactions
@@ -387,7 +387,7 @@
 							<Button
 								variant="destructive"
 								size="icon"
-								on:click={() => $deletePlayerMutation.mutate(playerGame.player)}
+								onclick={() => $deletePlayerMutation.mutate(playerGame.player)}
 								class="absolute -right-2 -top-2 rounded-full"
 							>
 								<CircleX class="size-4" />
@@ -419,14 +419,14 @@
 		<div class="grid grid-rows-2 gap-5">
 			<div class="grid grid-cols-2 gap-5">
 				{#if latestSession?.status === 'revealed'}
-					<Button variant="secondary" on:click={restart}>Restart</Button>
+					<Button variant="secondary" onclick={restart}>Restart</Button>
 				{:else}
-					<Button variant="outline" on:click={reveal}>Reveal</Button>
+					<Button variant="outline" onclick={reveal}>Reveal</Button>
 				{/if}
 
 				<div class="flex items-center space-x-3 justify-self-end">
 					<Switch.Root
-						on:click={toggleAutoReveal}
+						onclick={toggleAutoReveal}
 						id="auto-reveal"
 						checked={currentGame?.game?.auto_reveal}
 						class="data-[state=unchecked]:shadow-mini-inset peer inline-flex h-[36px] min-h-[36px] w-[60px] shrink-0 cursor-pointer items-center rounded-full px-[3px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-foreground data-[state=unchecked]:bg-slate-300 dark:data-[state=checked]:bg-foreground"
@@ -440,10 +440,10 @@
 			</div>
 
 			<div class="fixed right-5 top-5 flex gap-2">
-				<Button variant="secondary" on:click={startNewGame}>New Game</Button>
+				<Button variant="secondary" onclick={startNewGame}>New Game</Button>
 
 				<Button
-					on:click={() => invitePlayer()}
+					onclick={() => invitePlayer()}
 					class="flex cursor-pointer items-center justify-center transition-transform hover:scale-105 active:scale-95 active:shadow"
 				>
 					Invite player
@@ -457,7 +457,7 @@
 			<div class="flex gap-5 py-10">
 				{#each [...currentGame?.game.cards.split(','), emoji] as card}
 					<Card.Root
-						on:click={() =>
+						onclick={() =>
 							emoji !== card ? handleVote(card, 'basic') : handleVote(emoji, 'emoji')}
 						class={cn(
 							'cursor-pointer transition-transform hover:scale-105 active:scale-95 active:shadow',
