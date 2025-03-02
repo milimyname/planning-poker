@@ -13,7 +13,7 @@
 		type InsertReaction
 	} from '$lib/validators';
 	import { Button } from '$lib/components/ui/button';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { toast } from 'svelte-sonner';
 	import * as Card from '$lib/components/ui/card';
 	import { updateGame } from '$lib/electric-actions/game';
@@ -54,7 +54,7 @@
 	const playerGamesStream = new ShapeStream({
 		url: `${BASE_URL}/v1/shape`,
 		table: 'player_games',
-		where: `game_id='${$page.params.slug}'`
+		where: `game_id='${page.params.slug}'`
 	});
 
 	const playerGamesShape = new Shape(playerGamesStream);
@@ -230,7 +230,7 @@
 		} else if (!latestSession) {
 			const session = await $addSessionMutation.mutateAsync({
 				id: uuidv4(),
-				gameId: $page.params.slug,
+				gameId: page.params.slug,
 				status: 'active'
 			});
 			$addVoteMutation.mutate({
@@ -278,7 +278,7 @@
 	function restart() {
 		$addSessionMutation.mutate({
 			id: uuidv4(),
-			gameId: $page.params.slug,
+			gameId: page.params.slug,
 			status: 'active'
 		});
 
@@ -295,7 +295,7 @@
 		toast.success(`Auto reveal is now ${currentGame?.game?.auto_reveal ? 'enabled' : 'disabled'}.`);
 
 		$updateGameMutation.mutate({
-			id: $page.params.slug,
+			id: page.params.slug,
 			autoReveal: !currentGame?.game?.auto_reveal,
 			cards: currentGame?.game?.cards ?? '',
 			name: currentGame?.game?.name ?? '',
@@ -332,7 +332,7 @@
 	);
 
 	let currentGame = $derived.by(() =>
-		combinedPlayerGamesStore?.find((pg) => pg.game_id === $page.params.slug)
+		combinedPlayerGamesStore?.find((pg) => pg.game_id === page.params.slug)
 	);
 
 	let averageEstimateOfCurrentSession = $derived.by(() => {

@@ -1,12 +1,17 @@
-import eslint from '@eslint/js';
 import prettier from 'eslint-config-prettier';
+import js from '@eslint/js';
+import { includeIgnoreFile } from '@eslint/compat';
 import svelte from 'eslint-plugin-svelte';
 import globals from 'globals';
-import tseslint from 'typescript-eslint';
+import { fileURLToPath } from 'node:url';
+import ts from 'typescript-eslint';
 
-export default tseslint.config(
-	eslint.configs.recommended,
-	...tseslint.configs.recommended,
+const gitignorePath = fileURLToPath(new URL('./.gitignore', import.meta.url));
+
+export default ts.config(
+	includeIgnoreFile(gitignorePath),
+	js.configs.recommended,
+	...ts.configs.recommended,
 	...svelte.configs['flat/recommended'],
 	prettier,
 	...svelte.configs['flat/prettier'],
@@ -15,18 +20,38 @@ export default tseslint.config(
 			globals: {
 				...globals.browser,
 				...globals.node
+			},
+			parserOptions: {
+				// Add this to help ESLint understand TypeScript imports
+				project: './tsconfig.json',
+				extraFileExtensions: ['.svelte']
 			}
+		},
+		rules: {
+			// Add rules to handle imports
+			'@typescript-eslint/consistent-type-imports': [
+				'error',
+				{
+					prefer: 'type-imports'
+				}
+			],
+			// Ensure proper handling of TypeScript imports
+			'import/order': [
+				'error',
+				{
+					groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index'],
+					'newlines-between': 'always',
+					alphabetize: { order: 'asc', caseInsensitive: true }
+				}
+			]
 		}
 	},
 	{
 		files: ['**/*.svelte'],
 		languageOptions: {
 			parserOptions: {
-				parser: tseslint.parser
+				parser: ts.parser
 			}
 		}
-	},
-	{
-		ignores: ['build/', '.svelte-kit/', 'dist/']
 	}
 );

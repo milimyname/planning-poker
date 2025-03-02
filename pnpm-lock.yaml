@@ -32,6 +32,9 @@ importers:
       postgres:
         specifier: ^3.4.5
         version: 3.4.5
+      svelte-electricsql:
+        specifier: ^0.1.2
+        version: 0.1.2(svelte@5.20.5)
       uuid:
         specifier: ^10.0.0
         version: 10.0.0
@@ -179,6 +182,9 @@ packages:
 
   '@electric-sql/client@0.8.0':
     resolution: {integrity: sha512-M4VnuL2q2i1yhsjc9DEQtf4GEkXoaMjlfm0Lq7KqLDjj2nqPhbUTo8IeWhf3OJSZ7j+GyFd/YlLg4rlBDrE/6Q==}
+
+  '@electric-sql/client@1.0.0-beta.3':
+    resolution: {integrity: sha512-x3bzYlX+IRwBAILPxzu3ARkXzmrAQtVOuJCKCxlSqENuJa4zvLPF4f8vC6HMOiiJiHPAntJjfI3Hb0lrt2PTxA==}
 
   '@emoji-mart/data@1.2.1':
     resolution: {integrity: sha512-no2pQMWiBy6gpBEiqGeU77/bFejDqUTRY7KX+0+iur13op3bqUsXdnwoZs6Xb1zbv0gAj5VvS1PWoUUckSr5Dw==}
@@ -2232,6 +2238,12 @@ packages:
       svelte: ^4.0.0 || ^5.0.0-next.0
       typescript: '>=5.0.0'
 
+  svelte-electricsql@0.1.2:
+    resolution: {integrity: sha512-MJ5hcOCZ8KF6FwWYEkIvg5tMObJn6Jr+rU7KPr1ZjD0/dmEgpOA//sppcjq1uGhYYOCD5whtETSJ0TAEo1CRKg==}
+    engines: {pnpm: ^9.0.0}
+    peerDependencies:
+      svelte: ^5.0.0
+
   svelte-eslint-parser@1.0.0:
     resolution: {integrity: sha512-diZzpeeFhAxormeIhmRS4vXx98GG6T7Dq5y1a6qffqs/5MBrBqqDg8bj88iEohp6bvhU4MIABJmOTa0gXWcbSQ==}
     engines: {node: ^18.20.4 || ^20.18.0 || >=22.10.0}
@@ -2516,6 +2528,10 @@ snapshots:
   '@drizzle-team/brocli@0.10.2': {}
 
   '@electric-sql/client@0.8.0':
+    optionalDependencies:
+      '@rollup/rollup-darwin-arm64': 4.34.9
+
+  '@electric-sql/client@1.0.0-beta.3':
     optionalDependencies:
       '@rollup/rollup-darwin-arm64': 4.34.9
 
@@ -4271,6 +4287,11 @@ snapshots:
       typescript: 5.8.2
     transitivePeerDependencies:
       - picomatch
+
+  svelte-electricsql@0.1.2(svelte@5.20.5):
+    dependencies:
+      '@electric-sql/client': 1.0.0-beta.3
+      svelte: 5.20.5
 
   svelte-eslint-parser@1.0.0(svelte@5.20.5):
     dependencies:

@@ -5,17 +5,17 @@
 	import { zodClient } from 'sveltekit-superforms/adapters';
 	import { toast } from 'svelte-sonner';
 	import * as Form from '$lib/components/ui/form';
-	import { insertPlayerSchema, type InsertPlayer } from '$lib/validators';
+	import { insertPlayerSchema, type InsertPlayer, type Player } from '$lib/validators';
 	import { createPlayer } from '$lib/electric-actions/player';
 	import { createMutation } from '@tanstack/svelte-query';
 	import { v4 as uuidv4 } from 'uuid';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { createPlayerGame } from '$lib/electric-actions/playerGames.js';
 
 	let { data } = $props();
 
-	let slug = $page.params.slug;
+	let slug = page.params.slug;
 
 	const addPlayerMutation = createMutation({
 		mutationFn: (newPlayer: InsertPlayer) => createPlayer(newPlayer),
@@ -47,7 +47,7 @@
 				playerId: newInvitee[0].value.id
 			});
 
-			await data.updateCurrentPlayer(newInvitee[0].value);
+			await data.updateCurrentPlayer(newInvitee[0].value as Player);
 
 			goto(`/game/${slug}`);
 		}

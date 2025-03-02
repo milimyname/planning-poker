@@ -14,12 +14,16 @@
 	import { createMutation } from '@tanstack/svelte-query';
 	import { v4 as uuidv4 } from 'uuid';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
+	import { Player as ClassPlayer } from '$lib/states/player.svelte';
 
+	const player = new ClassPlayer();
+
+	$inspect(player.playerShape);
 	let { data } = $props();
 
-	const newGame = $page.url.searchParams.get('newGame')
-		? JSON.parse($page.url.searchParams.get('newGame') || '{}')
+	const newGame = page.url.searchParams.get('newGame')
+		? JSON.parse(page.url.searchParams.get('newGame') || '{}')
 		: undefined;
 
 	$effect(() => {
