@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { createMutation } from '@tanstack/svelte-query';
-	import { onMount } from 'svelte';
 	import { deletePlayer } from '$lib/electric-actions/player';
 	import {
 		type InsertVote,
@@ -35,15 +34,15 @@
 	import { ShapeStream, Shape } from '@electric-sql/client';
 	import { BASE_URL } from '$lib/constants.js';
 
-	let players: Player[];
-	let playerGames: PlayerGames[];
-	let games: Game[];
-	let sessions: Session[];
-	let votes: InsertVote[];
-	let reactions: InsertReaction[] = [];
+	let players: Player[] = $state();
+	let playerGames: PlayerGames[] = $state();
+	let games: Game[] = $state();
+	let sessions: Session[] = $state();
+	let votes: InsertVote[] = $state();
+	let reactions: InsertReaction[] = $state([]);
 
-	let isHovered: string;
-	let emoji = randomEmoji();
+	let isHovered: string = $state();
+	let emoji = $state(randomEmoji());
 
 	const playerStream = new ShapeStream({
 		url: `${BASE_URL}/v1/shape`,
@@ -88,43 +87,11 @@
 
 	const voteShape = new Shape(voteStream);
 
-	export let data;
-
-	$: combinedPlayerGamesStore = playerGames?.map((pg) => {
-		return {
-			...pg,
-			player: players?.find((p) => p.id === pg.player_id),
-			game: games?.find((g) => g.id === pg.game_id),
-			sessions: sessions?.filter((s) => s.game_id === pg.game_id),
-			activeVote: votes?.find(
-				(v) => v.session_id === latestSession?.id && v.player_id === pg.player_id
-			)
-		};
-	});
+	let { data } = $props();
 
 	let isLoading = false;
 
-	$: isCreator = playerGames?.some(
-		(pg) =>
-			pg.player_id === data?.currentPlayer.id && pg.is_creator && pg.game_id === $page.params.slug
-	);
-
-	$: currentGame = combinedPlayerGamesStore?.find((pg) => pg.game_id === $page.params.slug);
-
-	$: latestSession = sessions?.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
-
-	$: currentUserVotes = votes?.filter(
-		(v) => v.player_id === data.currentPlayer.id && v.session_id === latestSession?.id
-	);
-
-	$: averageEstimateOfCurrentSession = Math.round(
-		votes
-			?.filter((v) => v.session_id === latestSession?.id)
-			.reduce((acc, vote) => acc + vote.estimate, 0) /
-			votes?.filter((v) => v.session_id === latestSession?.id && v.estimate)?.length
-	);
-
-	onMount(() => {
+	$effect(() => {
 		playerGamesShape.subscribe((data) => {
 			playerGames = data.rows;
 		});
@@ -345,6 +312,44 @@
 			sessionId: latestSession.id
 		});
 	}
+
+	let latestSession = $derived.by(() =>
+		sessions
+			? [...sessions].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
+			: null
+	);
+
+	let combinedPlayerGamesStore = $derived.by(() =>
+		playerGames?.map((pg) => ({
+			...pg,
+			player: players?.find((p) => p.id === pg.player_id),
+			game: games?.find((g) => g.id === pg.game_id),
+			sessions: sessions?.filter((s) => s.game_id === pg.game_id),
+			activeVote: votes?.find(
+				(v) => v.session_id === latestSession?.id && v.player_id === pg.player_id
+			)
+		}))
+	);
+
+	let currentGame = $derived.by(() =>
+		combinedPlayerGamesStore?.find((pg) => pg.game_id === $page.params.slug)
+	);
+
+	let averageEstimateOfCurrentSession = $derived.by(() => {
+		let sessionVotes = votes?.filter((v) => v.session_id === latestSession?.id && v.estimate);
+		if (!sessionVotes?.length) return null;
+		return Math.round(
+			sessionVotes.reduce((acc, vote) => acc + vote.estimate, 0) / sessionVotes.length
+		);
+	});
+
+	let cards = $derived.by(() => [currentGame?.game?.cards?.split(','), emoji].flat());
+
+	let currentUserVotes = $derived.by(() =>
+		votes?.filter(
+			(v) => v.player_id === data.currentPlayer.id && v.session_id === latestSession?.id
+		)
+	);
 </script>
 
 <div class="size-screen h-screen w-full place-content-center pb-20">
@@ -452,10 +457,10 @@
 		</div>
 	</div>
 
-	{#if currentGame?.game?.cards}
+	{#if cards}
 		<div class="grid place-content-center">
 			<div class="flex gap-5 py-10">
-				{#each [...currentGame?.game.cards.split(','), emoji] as card}
+				{#each cards as card}
 					<Card.Root
 						onclick={() =>
 							emoji !== card ? handleVote(card, 'basic') : handleVote(emoji, 'emoji')}

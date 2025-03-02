@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import { Input } from '$lib/components/ui/input';
 	import { superForm } from 'sveltekit-superforms';
@@ -14,7 +13,7 @@
 	import { page } from '$app/stores';
 	import { createPlayerGame } from '$lib/electric-actions/playerGames.js';
 
-	export let data;
+	let { data } = $props();
 
 	let slug = $page.params.slug;
 
@@ -54,17 +53,19 @@
 		}
 	});
 
-	onMount(() => {
-		// Focus name input on load
+	$effect(() => {
 		const nameInput = document.querySelector('input[name="name"]') as HTMLInputElement;
-
 		if (nameInput) nameInput.focus();
 	});
 
 	const { form: formData, enhance } = form;
 
-	$: $formData.id = uuidv4();
-	$: $formData.gameId = slug;
+	$effect(() => {
+		$formData.id = uuidv4();
+	});
+	$effect(() => {
+		$formData.gameId = slug;
+	});
 </script>
 
 <AlertDialog.Root open={true}>
@@ -76,17 +77,21 @@
 		<div class="grid gap-4 py-4">
 			<form method="POST" class="w-full space-y-6" use:enhance>
 				<Form.Field {form} name="gameId">
-					<Form.Control let:attrs>
-						<Form.Label>Session</Form.Label>
-						<Input {...attrs} bind:value={$formData.gameId} />
+					<Form.Control>
+						{#snippet children({ props })}
+							<Form.Label>Session</Form.Label>
+							<Input {...props} bind:value={$formData.gameId} />
+						{/snippet}
 					</Form.Control>
 					<Form.FieldErrors />
 				</Form.Field>
 
 				<Form.Field {form} name="name">
-					<Form.Control let:attrs>
-						<Form.Label>Your Name</Form.Label>
-						<Input {...attrs} bind:value={$formData.name} />
+					<Form.Control>
+						{#snippet children({ props })}
+							<Form.Label>Your Name</Form.Label>
+							<Input {...props} bind:value={$formData.name} />
+						{/snippet}
 					</Form.Control>
 					<Form.FieldErrors />
 				</Form.Field>

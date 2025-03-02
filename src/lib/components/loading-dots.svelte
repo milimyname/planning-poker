@@ -1,13 +1,8 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-
-	// Add this to your existing script section
 	let dots = '';
-
-	// Create a dots animation interval
 	let dotsInterval: NodeJS.Timeout;
 
-	onMount(() => {
+	$effect(() => {
 		dotsInterval = setInterval(() => {
 			dots = dots.length >= 3 ? '' : dots + '.';
 		}, 500);

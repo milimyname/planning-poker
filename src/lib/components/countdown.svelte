@@ -1,15 +1,19 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 
-	export let currentGame: any;
-	export let handleReveal: () => void;
+	interface Props {
+		currentGame: any;
+		handleReveal: () => void;
+	}
 
-	let countdown = 10;
+	let { currentGame, handleReveal }: Props = $props();
+
+	let countdown = $state(10);
 	let countdownInterval: NodeJS.Timeout;
-	let isCountingDown = false;
+	let isCountingDown = $state(false);
 
 	// Combine both animations
-	$: animationClass = isCountingDown ? 'animate-number pulse-scale' : '';
+	let animationClass = $derived(isCountingDown ? 'animate-number pulse-scale' : '');
 
 	function startCountdown() {
 		if (!currentGame?.game?.auto_reveal || isCountingDown) return;
@@ -33,9 +37,11 @@
 	});
 
 	// Watch for changes in game status to start countdown
-	$: if (currentGame?.game?.status === 'voting' && currentGame?.game?.auto_reveal) {
-		startCountdown();
-	}
+	$effect(() => {
+		if (currentGame?.game?.status === 'voting' && currentGame?.game?.auto_reveal) {
+			startCountdown();
+		}
+	});
 </script>
 
 {#if currentGame?.game?.auto_reveal && isCountingDown}

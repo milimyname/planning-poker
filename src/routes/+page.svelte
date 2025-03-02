@@ -16,15 +16,17 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 
-	export let data;
+	let { data } = $props();
 
 	const newGame = $page.url.searchParams.get('newGame')
 		? JSON.parse($page.url.searchParams.get('newGame') || '{}')
 		: undefined;
 
-	$: if (newGame) open = true;
+	$effect(() => {
+		if (newGame) open = true;
+	});
 
-	let open = false;
+	let open = $state(false);
 
 	const addGameMutation = createMutation({
 		mutationFn: (newGame: InsertGame) => createGame(newGame),
@@ -86,18 +88,24 @@
 
 	const { form: formData, enhance, submitting } = form;
 
-	$: selectedCards = $formData.cards
-		? {
-				label: $formData.cards,
-				value: $formData.cards
-			}
-		: undefined;
+	let selectedCards = $derived(
+		$formData.cards
+			? {
+					label: $formData.cards,
+					value: $formData.cards
+				}
+			: undefined
+	);
 
-	$: if (open) $formData.id = uuidv4();
+	$effect(() => {
+		if (open) $formData.id = uuidv4();
+	});
 
-	$: if (submitting) {
-		toast.info('Creating session...');
-	}
+	$effect(() => {
+		if ($submitting) {
+			toast.info('Creating session...');
+		}
+	});
 </script>
 
 <Dialog.Root bind:open>
@@ -118,40 +126,40 @@
 		<div class="grid gap-4 py-4">
 			<form method="POST" class="w-full space-y-6" use:enhance>
 				<Form.Field {form} name="name">
-					<Form.Control let:attrs>
-						<Form.Label>Session Name</Form.Label>
-						<Input {...attrs} bind:value={$formData.name} />
+					<Form.Control>
+						{#snippet children({ props })}
+							<Form.Label>Session Name</Form.Label>
+							<Input {...props} bind:value={$formData.name} />
+						{/snippet}
 					</Form.Control>
 					<Form.FieldErrors />
 				</Form.Field>
 
 				<Form.Field {form} name="playerName">
-					<Form.Control let:attrs>
-						<Form.Label>Your Name</Form.Label>
-						<Input {...attrs} bind:value={$formData.playerName} />
+					<Form.Control>
+						{#snippet children({ props })}
+							<Form.Label>Your Name</Form.Label>
+							<Input {...props} bind:value={$formData.playerName} />
+						{/snippet}
 					</Form.Control>
 					<Form.FieldErrors />
 				</Form.Field>
 
 				<Form.Field {form} name="cards">
-					<Form.Control let:attrs>
-						<Form.Label>Cards</Form.Label>
-						<Select.Root
-							selected={selectedCards}
-							onSelectedChange={(v) => {
-								v && ($formData.cards = v.value);
-							}}
-						>
-							<Select.Trigger {...attrs}>
-								<Select.Value />
-							</Select.Trigger>
-							<Select.Content>
-								<Select.Item value="viadukt" label="viadukt" />
-							</Select.Content>
-						</Select.Root>
-						<input hidden bind:value={$formData.cards} name={attrs.name} />
+					<Form.Control>
+						{#snippet children({ props })}
+							<Form.Label>Cards</Form.Label>
+							<Select.Root type="single" bind:value={$formData.cards} name={props.name}>
+								<Select.Trigger {...props}>
+									{selectedCards ? selectedCards.label : 'Select a card set'}
+								</Select.Trigger>
+								<Select.Content>
+									<Select.Item value="viadukt" label="viadukt" />
+								</Select.Content>
+							</Select.Root>
+							<input hidden bind:value={$formData.cards} name={props.name} />
+						{/snippet}
 					</Form.Control>
-
 					<Form.FieldErrors />
 				</Form.Field>
 				{#if browser && dev}
