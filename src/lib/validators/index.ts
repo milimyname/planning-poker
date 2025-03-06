@@ -4,37 +4,23 @@ import { type Row } from '@electric-sql/client';
 export const gameSchema = z.object({
 	id: z.string().uuid(),
 	name: z.string().min(1),
-	createdAt: z.date(),
+	createdAt: z.date().nullish(),
 	cards: z.string(),
 	status: z.enum(['created', 'voting', 'revealed', 'finished']).default('created'),
 	playerName: z.string().min(1), // for form input,
 	autoReveal: z.boolean().default(false)
 });
 
-export type Game = z.infer<typeof gameSchema> & Row;
-
-export const insertGameSchema = gameSchema.omit({ createdAt: true });
-export const updateGameSChema = gameSchema.omit({
-	createdAt: true,
-	playerName: true
-});
-
-export type InsertGame = z.infer<typeof insertGameSchema> & Row;
-
-export type UpdateGame = z.infer<typeof updateGameSChema> & Row;
+export type GameType = Partial<z.infer<typeof gameSchema>>;
 
 export const playerSchema = z.object({
 	id: z.string().uuid(),
 	name: z.string().min(1).max(15),
-	joinedAt: z.date(),
+	joinedAt: z.date().nullish(),
 	gameId: z.string().uuid().optional() // TODO: remove later
 });
 
-export type Player = z.infer<typeof playerSchema> & Row;
-
-export const insertPlayerSchema = playerSchema.omit({ joinedAt: true });
-
-export type InsertPlayer = z.infer<typeof insertPlayerSchema> & Row;
+export type PlayerType = Partial<z.infer<typeof playerSchema>>;
 
 export const voteScema = z.object({
 	id: z.string().uuid(),
@@ -45,23 +31,15 @@ export const voteScema = z.object({
 	votedAt: z.date()
 });
 
-export type Vote = z.infer<typeof voteScema> & Row;
+export type VoteType = Partial<z.infer<typeof voteScema>>;
 
-export const insertVoteSchema = voteScema.omit({ votedAt: true });
-
-export type InsertVote = z.infer<typeof insertVoteSchema> & Row;
-
-export const playerGamesSchema = z.object({
+export const playerInGamesSchema = z.object({
 	playerId: z.string().uuid(),
 	gameId: z.string().uuid(),
 	isCreator: z.boolean()
 });
 
-export type PlayerGames = z.infer<typeof playerGamesSchema> & Row;
-
-export const insertPlayerGamesSchema = playerGamesSchema.omit({ isCreator: true });
-
-export type InsertPlayerGame = z.infer<typeof insertPlayerGamesSchema> & Row;
+export type PlayerInGamesType = Partial<z.infer<typeof playerInGamesSchema>>;
 
 export const sessionSchema = z.object({
 	id: z.string().uuid(),
@@ -71,11 +49,7 @@ export const sessionSchema = z.object({
 	updatedAt: z.date()
 });
 
-export type Session = z.infer<typeof sessionSchema> & Row;
-
-export const insertSessionSchema = sessionSchema.omit({ createdAt: true, updatedAt: true });
-
-export type InsertSession = z.infer<typeof insertSessionSchema> & Row;
+export type SessionType = Partial<z.infer<typeof sessionSchema>>;
 
 export const reactionSchema = z.object({
 	id: z.string().uuid(),
@@ -86,8 +60,4 @@ export const reactionSchema = z.object({
 	createdAt: z.date()
 });
 
-export type Reaction = z.infer<typeof reactionSchema> & Row;
-
-export const insertReactionSchema = reactionSchema.omit({ createdAt: true });
-
-export type InsertReaction = z.infer<typeof insertReactionSchema> & Row;
+export type ReactionType = Partial<z.infer<typeof sessionSchema>>;

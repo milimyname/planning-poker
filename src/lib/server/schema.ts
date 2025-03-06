@@ -41,7 +41,8 @@ export const players = pgTable('players', {
 		.$onUpdate(() => sql`now()`)
 });
 
-export const playerGames = pgTable('player_games', {
+export const playerInGames = pgTable('player_games', {
+	id: uuid('id').defaultRandom().primaryKey(),
 	playerId: uuid('player_id')
 		.notNull()
 		.references(() => players.id, { onDelete: 'cascade' }),
@@ -109,22 +110,22 @@ export const gamesRelations = relations(games, ({ one, many }) => ({
 		fields: [games.id],
 		references: [players.id]
 	}),
-	playerGames: many(playerGames),
+	playerInGames: many(playerInGames),
 	sessions: many(sessions)
 }));
 
 export const playersRelations = relations(players, ({ many }) => ({
-	playerGames: many(playerGames),
+	playerInGames: many(playerInGames),
 	votes: many(votes)
 }));
 
-export const playerGamesRelations = relations(playerGames, ({ one }) => ({
+export const playerInGamesRelations = relations(playerInGames, ({ one }) => ({
 	player: one(players, {
-		fields: [playerGames.playerId],
+		fields: [playerInGames.playerId],
 		references: [players.id]
 	}),
 	game: one(games, {
-		fields: [playerGames.gameId],
+		fields: [playerInGames.gameId],
 		references: [games.id]
 	})
 }));

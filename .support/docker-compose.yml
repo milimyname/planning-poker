@@ -1,5 +1,5 @@
 version: '3.3'
-name: 'electric_example-${PROJECT_NAME:-default}'
+name: 'electric_quickstart'
 
 services:
   postgres:
@@ -21,7 +21,7 @@ services:
       - config_file=/etc/postgresql/postgresql.conf
 
   backend:
-    image: electricsql/electric:canary
+    image: electricsql/electric
     environment:
       DATABASE_URL: postgresql://postgres:password@postgres:5432/electric?sslmode=disable
 
