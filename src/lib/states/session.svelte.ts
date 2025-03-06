@@ -1,30 +1,41 @@
 import { BASE_API_URL, BASE_URL } from '$lib/constants';
-import { type InsertSession } from '$lib/validators';
+import type { ApiResponse } from '$lib/types/api';
+import { type SessionType } from '$lib/validators';
+import { ofetch } from 'ofetch';
 import { useShape, type UseShapeResult } from 'svelte-electricsql';
 
-export class Player {
-	shape: UseShapeResult<InsertSession>;
+export class Session {
+	private _shape: UseShapeResult<SessionType> | undefined;
 	table = 'sessions';
 
-	constructor(where?: string) {
-		this.shape = useShape({
-			url: new URL(`/v1/shape`, BASE_URL).href,
-			params: {
-				table: this.table,
-				where
-			}
-		});
+	constructor() {}
+
+	private initShape(where?: string) {
+		if (!this._shape) {
+			this._shape = useShape({
+				url: new URL(`/v1/shape`, BASE_URL).href,
+				params: {
+					table: this.table,
+					where
+				}
+			});
+		}
+		return this._shape;
 	}
 
-	create(session: InsertSession) {
-		fetch(`${BASE_API_URL}/${this.table}`, {
+	fetchShape(where?: string) {
+		return this.initShape(where);
+	}
+
+	async create(body: SessionType): Promise<SessionType> {
+		const json = await ofetch<ApiResponse<SessionType>>(`${BASE_API_URL}/${this.table}`, {
 			method: 'POST',
-			body: JSON.stringify(session),
-			headers: { 'Content-Type': 'application/json' }
+			body
 		});
+		return json.data;
 	}
 
-	update(session: InsertSession) {
+	update(session: SessionType) {
 		fetch(`${BASE_API_URL}/${this.table}/item/${session.id}`, {
 			method: `PUT`,
 			body: JSON.stringify(session)

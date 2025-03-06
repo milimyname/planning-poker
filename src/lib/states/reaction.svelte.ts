@@ -1,25 +1,34 @@
 import { BASE_API_URL, BASE_URL } from '$lib/constants';
-import { type InsertReaction } from '$lib/validators';
+import { type ReactionType } from '$lib/validators';
 import { useShape, type UseShapeResult } from 'svelte-electricsql';
 
 export class Reaction {
-	shape: UseShapeResult<InsertReaction>;
+	private _shape: UseShapeResult<ReactionType> | undefined;
 	table = 'reactions';
 
-	constructor(where?: string) {
-		this.shape = useShape({
-			url: new URL(`/v1/shape`, BASE_URL).href,
-			params: {
-				table: this.table,
-				where
-			}
-		});
+	constructor() {}
+
+	private initShape(where?: string) {
+		if (!this._shape) {
+			this._shape = useShape({
+				url: new URL(`/v1/shape`, BASE_URL).href,
+				params: {
+					table: this.table,
+					where
+				}
+			});
+		}
+		return this._shape;
 	}
 
-	create(player: InsertReaction) {
+	fetchShape(where?: string) {
+		return this.initShape(where);
+	}
+
+	create(reaction: ReactionType) {
 		fetch(`${BASE_API_URL}/${this.table}`, {
 			method: 'POST',
-			body: JSON.stringify(player),
+			body: JSON.stringify(reaction),
 			headers: { 'Content-Type': 'application/json' }
 		});
 	}
@@ -31,9 +40,16 @@ export class Reaction {
 		});
 	}
 
-	delete(player: InsertReaction) {
-		fetch(`${BASE_API_URL}/${this.table}/item/${player.id}`, {
+	delete(reaction: ReactionType) {
+		fetch(`${BASE_API_URL}/${this.table}/item/${reaction.id}`, {
 			method: 'DELETE'
+		});
+	}
+
+	deleteInSession(sessionId: string) {
+		fetch(`${BASE_API_URL}/${this.table}`, {
+			method: 'DELETE',
+			body: JSON.stringify({ sessionId })
 		});
 	}
 }

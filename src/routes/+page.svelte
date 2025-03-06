@@ -8,19 +8,21 @@
 	import { browser, dev } from '$app/environment';
 	import * as Form from '$lib/components/ui/form';
 	import * as Select from '$lib/components/ui/select';
-	import { insertGameSchema, type InsertGame, type InsertPlayer } from '$lib/validators';
+	import { gameSchema, type GameType, type PlayerType } from '$lib/validators';
 	import { createGame } from '$lib/electric-actions/game';
 	import { createPlayer } from '$lib/electric-actions/player';
 	import { createMutation } from '@tanstack/svelte-query';
 	import { v4 as uuidv4 } from 'uuid';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { Player as ClassPlayer } from '$lib/states/player.svelte';
+	import { ESTIMATE_SELECTIONS } from '$lib/constants.js';
+	import { Player } from '$lib/states/player.svelte';
+	import { Game } from '$lib/states/game.svelte';
 
-	const player = new ClassPlayer();
-
-	$inspect(player.playerShape);
 	let { data } = $props();
+
+	const player = new Player();
+	const game = new Game();
 
 	const newGame = page.url.searchParams.get('newGame')
 		? JSON.parse(page.url.searchParams.get('newGame') || '{}')
@@ -33,18 +35,18 @@
 	let open = $state(false);
 
 	const addGameMutation = createMutation({
-		mutationFn: (newGame: InsertGame) => createGame(newGame),
+		mutationFn: (newGame: GameType) => createGame(newGame),
 		mutationKey: ['add-game']
 	});
 
 	const addPlayerMutation = createMutation({
-		mutationFn: (newPlayer: InsertPlayer) => createPlayer(newPlayer),
+		mutationFn: (newPlayer: PlayerType) => createPlayer(newPlayer),
 		mutationKey: ['add-player']
 	});
 
 	const form = superForm(data.form, {
 		SPA: true,
-		validators: zodClient(insertGameSchema),
+		validators: zodClient(gameSchema),
 		resetForm: true,
 		onUpdated: async ({ form: f }) => {
 			if (!f.valid) {
@@ -53,26 +55,31 @@
 			}
 
 			const createSession = async () => {
-				const newPlayer = await $addPlayerMutation.mutateAsync({
+				const creator = await player.create({
 					id: uuidv4(),
 					name: f.data.playerName
 				});
 
-				localStorage.setItem('currentPlayer', JSON.stringify(newPlayer[0].value));
+				localStorage.setItem('currentPlayer', JSON.stringify(creator));
 
-				const newGame = await $addGameMutation.mutateAsync({
+				if (!creator.id) {
+					toast.error('Player ID is missing.');
+					return;
+				}
+
+				const newGame = await game.create({
 					id: uuidv4(),
 					name: f.data.name,
-					cards: '1,2,3,5,8,13',
+					cards: f.data.cards,
 					status: 'voting',
-					creatorId: newPlayer[0].value.id,
+					creatorId: creator.id,
 					autoReveal: false,
 					playerName: f.data.playerName
 				});
 
-				await data.updateCurrentPlayer(newPlayer[0].value);
+				await data.updateCurrentPlayer(creator);
 
-				return { player: newPlayer[0].value, game: newGame[0].value };
+				return { game: newGame };
 			};
 
 			// Create the session once and store the promise
@@ -81,12 +88,12 @@
 			// Use the same promise for both the toast and navigation
 			toast.promise(sessionPromise, {
 				loading: 'Creating session...',
-				success: (data) => `Created new session: ${data.game.name}`,
+				success: (data) => {
+					goto(`/game/${data?.game.id}`);
+					return `Created new session: ${data?.game.name}`;
+				},
 				error: 'Failed to create session. Please try again.'
 			});
-
-			const result = await sessionPromise;
-			goto(`/game/${result.game.id}`);
 		}
 	});
 
@@ -106,9 +113,7 @@
 	});
 
 	$effect(() => {
-		if ($submitting) {
-			toast.info('Creating session...');
-		}
+		if ($submitting) toast.info('Creating session...');
 	});
 </script>
 
@@ -120,7 +125,7 @@
 			</Dialog.Trigger>
 		</div>
 	</div>
-	<Dialog.Content class="sm:max-w-xl">
+	<Dialog.Content class="overflow-hidden sm:max-w-xl">
 		<Dialog.Header>
 			<Dialog.Title>Create a new session</Dialog.Title>
 			<Dialog.Description>
@@ -158,7 +163,9 @@
 									{selectedCards ? selectedCards.label : 'Select a card set'}
 								</Select.Trigger>
 								<Select.Content>
-									<Select.Item value="viadukt" label="viadukt" />
+									{#each ESTIMATE_SELECTIONS as selection}
+										<Select.Item value={selection} label={selection} />
+									{/each}
 								</Select.Content>
 							</Select.Root>
 							<input hidden bind:value={$formData.cards} name={props.name} />

@@ -167,7 +167,7 @@
 <div class="relative">
 	{#if show}
 		<div
-			class="emoji-buttons absolute -top-10 left-1/2 z-10 -translate-x-1/2 select-none"
+			class="emoji-buttons absolute -top-14 left-1/2 z-10 -translate-x-1/2 select-none"
 			transition:fade
 		>
 			{#each emojiButtons as button}

@@ -1,37 +1,48 @@
 import { BASE_API_URL, BASE_URL } from '$lib/constants';
-import { type InsertPlayer } from '$lib/validators';
+import { type PlayerType } from '$lib/validators';
 import { useShape, type UseShapeResult } from 'svelte-electricsql';
+import { ofetch } from 'ofetch';
+import type { ApiResponse } from '$lib/types/api';
 
 export class Player {
-	shape: UseShapeResult<InsertPlayer>;
+	private _shape: UseShapeResult<PlayerType> | undefined;
 	table = 'players';
 
-	constructor(where?: string) {
-		this.shape = useShape({
-			url: new URL(`/v1/shape`, BASE_URL).href,
-			params: {
-				table: this.table,
-				where
-			}
-		});
+	constructor() {}
+
+	private initShape(where?: string) {
+		if (!this._shape) {
+			this._shape = useShape({
+				url: new URL(`/v1/shape`, BASE_URL).href,
+				params: {
+					table: this.table,
+					where
+				}
+			});
+		}
+		return this._shape;
 	}
 
-	create(player: InsertPlayer) {
-		fetch(`${BASE_API_URL}/${this.table}`, {
+	fetchShape(where?: string) {
+		return this.initShape(where);
+	}
+
+	async create(body: PlayerType): Promise<PlayerType> {
+		const json = await ofetch<ApiResponse<PlayerType>>(`${BASE_API_URL}/${this.table}`, {
 			method: 'POST',
-			body: JSON.stringify(player),
-			headers: { 'Content-Type': 'application/json' }
+			body
 		});
+		return json.data;
 	}
 
 	// Clear all players in a session
-	clearInvitees(player: InsertPlayer) {
+	clearInvitees(player: PlayerType) {
 		fetch(`${BASE_API_URL}/${this.table}/item/${player.id}`, {
 			method: 'DELETE'
 		});
 	}
 
-	delete(player: InsertPlayer) {
+	delete(player: PlayerType) {
 		fetch(`${BASE_API_URL}/${this.table}/item/${player.id}`, {
 			method: 'DELETE'
 		});

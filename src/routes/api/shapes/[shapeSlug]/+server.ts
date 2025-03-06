@@ -1,12 +1,12 @@
 import { db } from '$lib/server/db';
-import { games, players, playerGames, votes, sessions, reactions } from '$lib/server/schema';
+import { games, players, playerInGames, votes, sessions, reactions } from '$lib/server/schema';
 import { json } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
+import { eq, ne } from 'drizzle-orm';
 
 const shapeMap = {
 	games,
 	players,
-	playerGames,
+	playerInGames,
 	votes,
 	sessions,
 	reactions
@@ -30,7 +30,7 @@ export const POST = async ({ params, request }) => {
 				case 'games':
 					if (!body.creatorId) throw new Error('creatorId is required for creating a game');
 
-					await tx.insert(playerGames).values({
+					await tx.insert(playerInGames).values({
 						playerId: body.creatorId,
 						gameId: result.id,
 						isCreator: true
@@ -53,15 +53,44 @@ export const POST = async ({ params, request }) => {
 	}
 };
 
-export const DELETE = async ({ params }) => {
+export const DELETE = async ({ params, request }) => {
 	const { shapeSlug } = params;
 	const shape = shapeMap[shapeSlug];
 
 	if (!shape) return json({ error: `Invalid shape: ${shapeSlug}` }, { status: 400 });
 
+	const body = await request.json();
+
 	try {
 		await db.delete(shape);
-		return json({ message: `All ${shapeSlug} deleted` }, { status: 200 });
+
+		let result;
+
+		console.log('shapeSlug:', shapeSlug, body);
+
+		await db.transaction(async (tx) => {
+			[result] = await tx.insert(shape).values(body).returning();
+
+			switch (shapeSlug) {
+				case 'reactions':
+					// Clear all reactions in a session
+					if (!body.sessionId)
+						throw new Error('sessionId is required for clearing all reactions in a session');
+
+					await tx.delete(reactions).where(eq(reactions.sessionId, body.sessionId));
+
+					return json(
+						{ message: `All reactions in session ${body.sessionId} deleted`, data: result },
+						{ status: 200 }
+					);
+
+					break;
+				default:
+					[result] = await tx.delete(shape);
+			}
+		});
+
+		return json({ message: `All ${shapeSlug} deleted`, data: result }, { status: 200 });
 	} catch (error) {
 		console.error(`Error deleting ${shapeSlug}:`, error);
 		return json({ error: `Failed to delete ${shapeSlug}` }, { status: 500 });

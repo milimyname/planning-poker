@@ -1,30 +1,41 @@
 import { BASE_API_URL, BASE_URL } from '$lib/constants';
-import { type InsertVote } from '$lib/validators';
+import type { ApiResponse } from '$lib/types/api';
+import { type VoteType } from '$lib/validators';
+import { ofetch } from 'ofetch';
 import { useShape, type UseShapeResult } from 'svelte-electricsql';
 
 export class Vote {
-	shape: UseShapeResult<InsertVote>;
+	private _shape: UseShapeResult<VoteType> | undefined;
 	table = 'votes';
 
-	constructor(where?: string) {
-		this.shape = useShape({
-			url: new URL(`/v1/shape`, BASE_URL).href,
-			params: {
-				table: this.table,
-				where
-			}
-		});
+	constructor() {}
+
+	private initShape(where?: string) {
+		if (!this._shape) {
+			this._shape = useShape({
+				url: new URL(`/v1/shape`, BASE_URL).href,
+				params: {
+					table: this.table,
+					where
+				}
+			});
+		}
+		return this._shape;
 	}
 
-	create(vote: InsertVote) {
-		fetch(`${BASE_API_URL}/${this.table}`, {
+	fetchShape(where?: string) {
+		return this.initShape(where);
+	}
+
+	async create(body: VoteType): Promise<VoteType> {
+		const json = await ofetch<ApiResponse<VoteType>>(`${BASE_API_URL}/${this.table}`, {
 			method: 'POST',
-			body: JSON.stringify(vote),
-			headers: { 'Content-Type': 'application/json' }
+			body
 		});
+		return json.data;
 	}
 
-	update(vote: InsertVote) {
+	update(vote: VoteType) {
 		fetch(`${BASE_API_URL}/${this.table}/item/${vote.id}`, {
 			method: `PUT`,
 			body: JSON.stringify(vote)
