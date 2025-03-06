@@ -1,31 +1,27 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import { Input } from '$lib/components/ui/input';
 	import { superForm } from 'sveltekit-superforms';
 	import { zodClient } from 'sveltekit-superforms/adapters';
 	import { toast } from 'svelte-sonner';
 	import * as Form from '$lib/components/ui/form';
-	import { insertPlayerSchema, type InsertPlayer } from '$lib/validators';
-	import { createPlayer } from '$lib/electric-actions/player';
-	import { createMutation } from '@tanstack/svelte-query';
+	import { playerSchema } from '$lib/validators';
 	import { v4 as uuidv4 } from 'uuid';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
-	import { createPlayerGame } from '$lib/electric-actions/playerGames.js';
+	import { page } from '$app/state';
+	import { Player as ClassPlayer } from '$lib/states/player.svelte';
+	import { PlayerInGames } from '$lib/states/player-in-games.svelte.js';
 
-	export let data;
+	let { data } = $props();
 
-	let slug = $page.params.slug;
+	let slug = page.params.slug;
 
-	const addPlayerMutation = createMutation({
-		mutationFn: (newPlayer: InsertPlayer) => createPlayer(newPlayer),
-		mutationKey: ['add-player']
-	});
+	const player = new ClassPlayer();
+	const playerInGames = new PlayerInGames();
 
 	const form = superForm(data.form, {
 		SPA: true,
-		validators: zodClient(insertPlayerSchema),
+		validators: zodClient(playerSchema),
 		resetForm: true,
 		onUpdated: async ({ form: f }) => {
 			if (!f.valid) {
@@ -35,36 +31,66 @@
 
 			toast.success(`You have joined the game as ${f.data.name}.`);
 
-			const newInvitee = await $addPlayerMutation.mutateAsync({
+			if (!slug) {
+				toast.error('Game ID is missing.');
+				return;
+			}
+
+			const invitee = await player.create({
 				id: uuidv4(),
 				gameId: slug,
 				name: f.data.name
 			});
 
-			localStorage.setItem('currentPlayer', JSON.stringify(newInvitee[0].value));
+			localStorage.setItem('currentPlayer', JSON.stringify(invitee));
 
-			createPlayerGame({
+			if (!invitee.id) {
+				toast.error('Player ID is missing.');
+				return;
+			}
+
+			await playerInGames.create({
 				gameId: slug,
-				playerId: newInvitee[0].value.id
+				playerId: invitee.id
 			});
 
-			await data.updateCurrentPlayer(newInvitee[0].value);
+			await data.updateCurrentPlayer(invitee);
 
-			goto(`/game/${slug}`);
+			toast.promise(
+				new Promise((resolve) =>
+					setTimeout(
+						() =>
+							resolve({
+								data: invitee
+							}),
+						500
+					)
+				),
+				{
+					loading: 'Joining the game...',
+					success: () => {
+						goto(`/game/${slug}`);
+						return 'You have joined the game as ' + f.data.name + '.';
+					},
+					error: 'Failed to join the game.'
+				}
+			);
 		}
 	});
 
-	onMount(() => {
-		// Focus name input on load
+	$effect(() => {
 		const nameInput = document.querySelector('input[name="name"]') as HTMLInputElement;
-
 		if (nameInput) nameInput.focus();
 	});
 
 	const { form: formData, enhance } = form;
 
-	$: $formData.id = uuidv4();
-	$: $formData.gameId = slug;
+	$effect(() => {
+		$formData.id = uuidv4();
+	});
+	$effect(() => {
+		$formData.gameId = slug;
+	});
 </script>
 
 <AlertDialog.Root open={true}>
@@ -76,17 +102,21 @@
 		<div class="grid gap-4 py-4">
 			<form method="POST" class="w-full space-y-6" use:enhance>
 				<Form.Field {form} name="gameId">
-					<Form.Control let:attrs>
-						<Form.Label>Session</Form.Label>
-						<Input {...attrs} bind:value={$formData.gameId} />
+					<Form.Control>
+						{#snippet children({ props })}
+							<Form.Label>Session</Form.Label>
+							<Input {...props} bind:value={$formData.gameId} />
+						{/snippet}
 					</Form.Control>
 					<Form.FieldErrors />
 				</Form.Field>
 
 				<Form.Field {form} name="name">
-					<Form.Control let:attrs>
-						<Form.Label>Your Name</Form.Label>
-						<Input {...attrs} bind:value={$formData.name} />
+					<Form.Control>
+						{#snippet children({ props })}
+							<Form.Label>Your Name</Form.Label>
+							<Input {...props} bind:value={$formData.name} />
+						{/snippet}
 					</Form.Control>
 					<Form.FieldErrors />
 				</Form.Field>

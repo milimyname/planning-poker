@@ -3,23 +3,18 @@
 	import { fade } from 'svelte/transition';
 	import EmojiPicker from './emoji-picker.svelte';
 
-	export let targetedCardId: string;
-	export let show: boolean;
-	export let reactions: InsertReaction[];
-	export let handleReaction: (emoji: string) => void;
+	interface Props {
+		targetedCardId: string;
+		show: boolean;
+		reactions: InsertReaction[];
+		handleReaction: (emoji: string) => void;
+	}
 
-	let showPicker = false;
-	let animatedEmojis = [];
-	let previousReactions: InsertReaction[] = [];
+	let { targetedCardId, show, reactions, handleReaction }: Props = $props();
 
-	// Filter reactions for this specific card
-	$: cardReactions = reactions.filter((reaction) => reaction.target_player_id === targetedCardId);
-
-	// Track reactions counts for this card only
-	$: reactionCounts = cardReactions.reduce((acc, reaction) => {
-		acc[reaction.emoji] = (acc[reaction.emoji] || 0) + 1;
-		return acc;
-	}, {});
+	let showPicker = $state(false);
+	let animatedEmojis = $state([]);
+	let previousReactions: InsertReaction[] = $state([]);
 
 	const emojiButtons = [
 		{ emoji: '👍', label: 'thumbs up' },
@@ -34,25 +29,6 @@
 		const emoji = event.detail.native;
 		showPicker = false;
 		throwEmoji(emoji);
-	}
-
-	// Watch for new reactions for this specific card
-	$: {
-		if (cardReactions) {
-			const newReactions = cardReactions.filter(
-				(reaction) => !previousReactions.some((prev) => prev.id === reaction.id)
-			);
-
-			// Animate each new reaction
-			newReactions.forEach((reaction) => {
-				if (!animatedEmojis.some((e) => e.reactionId === reaction.id)) {
-					throwEmoji(reaction.emoji, reaction.id);
-				}
-			});
-
-			// Update previous reactions
-			previousReactions = cardReactions;
-		}
 	}
 
 	function getRandomStartPosition() {
@@ -157,18 +133,47 @@
 			animatedEmojis = animatedEmojis.filter((e) => e.id !== emoji.id);
 		}, 2000);
 	}
+	// Filter reactions for this specific card
+	let cardReactions = $derived(
+		reactions.filter((reaction) => reaction.target_player_id === targetedCardId)
+	);
+	// Track reactions counts for this card only
+	let reactionCounts = $derived(
+		cardReactions.reduce((acc, reaction) => {
+			acc[reaction.emoji] = (acc[reaction.emoji] || 0) + 1;
+			return acc;
+		}, {})
+	);
+	// Watch for new reactions for this specific card
+	$effect(() => {
+		if (cardReactions) {
+			const newReactions = cardReactions.filter(
+				(reaction) => !previousReactions.some((prev) => prev.id === reaction.id)
+			);
+
+			// Animate each new reaction
+			newReactions.forEach((reaction) => {
+				if (!animatedEmojis.some((e) => e.reactionId === reaction.id)) {
+					throwEmoji(reaction.emoji, reaction.id);
+				}
+			});
+
+			// Update previous reactions
+			previousReactions = cardReactions;
+		}
+	});
 </script>
 
 <div class="relative">
 	{#if show}
 		<div
-			class="emoji-buttons absolute -top-10 left-1/2 z-10 -translate-x-1/2 select-none"
+			class="emoji-buttons absolute -top-14 left-1/2 z-10 -translate-x-1/2 select-none"
 			transition:fade
 		>
 			{#each emojiButtons as button}
 				<button
 					class="emoji-button relative"
-					on:click={() => {
+					onclick={() => {
 						button.emoji === '➕' ? (showPicker = !showPicker) : throwEmoji(button.emoji);
 					}}
 					aria-label={button.label}

@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { onMount, createEventDispatcher } from 'svelte';
+	import { createEventDispatcher } from 'svelte';
 	import data from '@emoji-mart/data';
 
 	const dispatch = createEventDispatcher();
-	let pickerContainer: HTMLDivElement;
+	let pickerContainer: HTMLDivElement = $state();
 
 	const initPicker = async (node) => {
 		const { Picker } = await import('emoji-mart');
@@ -27,12 +27,12 @@
 		};
 	};
 
-	onMount(() => {
+	$effect(() => {
 		initPicker(pickerContainer);
 	});
 </script>
 
-<div bind:this={pickerContainer} class="emoji-picker-container" />
+<div bind:this={pickerContainer} class="emoji-picker-container"></div>
 
 <style>
 	.emoji-picker-container {
