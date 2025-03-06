@@ -8,16 +8,12 @@
 	import { browser, dev } from '$app/environment';
 	import * as Form from '$lib/components/ui/form';
 	import * as Select from '$lib/components/ui/select';
-	import { gameSchema, type GameType, type PlayerType } from '$lib/validators';
-	import { createGame } from '$lib/electric-actions/game';
-	import { createPlayer } from '$lib/electric-actions/player';
-	import { createMutation } from '@tanstack/svelte-query';
+	import { gameSchema } from '$lib/validators';
 	import { v4 as uuidv4 } from 'uuid';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { ESTIMATE_SELECTIONS } from '$lib/constants.js';
-	import { Player } from '$lib/states/player.svelte';
-	import { Game } from '$lib/states/game.svelte';
+	import { Player, Game } from '$lib/states';
 
 	let { data } = $props();
 
@@ -33,16 +29,6 @@
 	});
 
 	let open = $state(false);
-
-	const addGameMutation = createMutation({
-		mutationFn: (newGame: GameType) => createGame(newGame),
-		mutationKey: ['add-game']
-	});
-
-	const addPlayerMutation = createMutation({
-		mutationFn: (newPlayer: PlayerType) => createPlayer(newPlayer),
-		mutationKey: ['add-player']
-	});
 
 	const form = superForm(data.form, {
 		SPA: true,
@@ -78,6 +64,8 @@
 				});
 
 				await data.updateCurrentPlayer(creator);
+
+				setTimeout(() => {}, 1000);
 
 				return { game: newGame };
 			};
@@ -177,7 +165,7 @@
 					<SuperDebug data={$formData} />
 				{/if}
 				<Dialog.Footer>
-					<Form.Button disabled={$submitting || $addGameMutation.isPending}>Create</Form.Button>
+					<Form.Button disabled={$submitting}>Create</Form.Button>
 				</Dialog.Footer>
 			</form>
 		</div>

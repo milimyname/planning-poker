@@ -5,7 +5,7 @@ import { browser } from '$app/environment';
 // export const BASE_URL = import.meta.env.ELECTRIC_URL ?? `http://localhost:3000`;
 
 // Caddy server
-export const BASE_URL = import.meta.env.ELECTRIC_URL ?? `http://localhost:3001`;
+export const BASE_URL = import.meta.env.ELECTRIC_URL ?? `http://localhost:3000`;
 
 export const BASE_API_URL = browser
 	? `${window.location.origin}/api/shapes`
