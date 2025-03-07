@@ -20,7 +20,11 @@ ENV NODE_ENV=production
 ARG VITE_ELECTRIC_URL
 ARG DATABASE_URL
 
-RUN pnpm drizzle-kit generate && pnpm run build
+RUN --mount=type=secret,id=VITE_ELECTRIC_URL \
+    export VITE_ELECTRIC_URL="$(cat /run/secrets/VITE_ELECTRIC_URL)" && \
+    export DATABASE_URL="$(cat /run/secrets/DATABASE_URL)" && \
+    pnpm drizzle-kit generate && \
+    pnpm run build
 
 # Remove dev dependencies
 RUN pnpm prune --prod
@@ -33,7 +37,7 @@ WORKDIR /app
 # Copy the built files from the previous stage
 COPY --from=builder /app .
 
-ENV PORT=4000
+ENV PORT=3000
 ENV NODE_ENV=production
 ENV VITE_ELECTRIC_URL=${VITE_ELECTRIC_URL}
 ENV DATABASE_URL=${DATABASE_URL}
