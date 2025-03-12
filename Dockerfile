@@ -20,7 +20,7 @@ ENV NODE_ENV=production
 ARG VITE_ELECTRIC_URL
 ARG DATABASE_URL
 
-RUN pnpm drizzle-kit generate && pnpm run build
+RUN pnpm generate && pnpm build
 
 # Remove dev dependencies
 RUN pnpm prune --prod
