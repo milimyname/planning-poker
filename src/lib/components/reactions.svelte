@@ -1,12 +1,12 @@
 <script lang="ts">
-	import type { InsertReaction } from '$lib/validators';
+	import type { ReactionType } from '$lib/validators';
 	import { fade } from 'svelte/transition';
 	import EmojiPicker from './emoji-picker.svelte';
 
 	interface Props {
 		targetedCardId: string;
 		show: boolean;
-		reactions: InsertReaction[];
+		reactions: ReactionType[];
 		handleReaction: (emoji: string) => void;
 	}
 
@@ -14,7 +14,7 @@
 
 	let showPicker = $state(false);
 	let animatedEmojis = $state([]);
-	let previousReactions: InsertReaction[] = $state([]);
+	let previousReactions: ReactionType[] = $state([]);
 
 	const emojiButtons = [
 		{ emoji: '👍', label: 'thumbs up' },
@@ -94,7 +94,6 @@
 		// If no reactionId, this is a new reaction from the user
 		if (!reactionId) {
 			handleReaction(selectedEmoji);
-
 			return;
 		}
 
@@ -151,15 +150,18 @@
 				(reaction) => !previousReactions.some((prev) => prev.id === reaction.id)
 			);
 
-			// Animate each new reaction
-			newReactions.forEach((reaction) => {
-				if (!animatedEmojis.some((e) => e.reactionId === reaction.id)) {
-					throwEmoji(reaction.emoji, reaction.id);
-				}
-			});
+			// Only animate if there are actual new reactions
+			if (newReactions.length > 0) {
+				// Animate each new reaction
+				newReactions.forEach((reaction) => {
+					if (!animatedEmojis.some((e) => e.reactionId === reaction.id)) {
+						throwEmoji(reaction.emoji, reaction.id);
+					}
+				});
 
-			// Update previous reactions
-			previousReactions = cardReactions;
+				// Update previous reactions (make a copy to avoid reactivity issues)
+				previousReactions = [...cardReactions];
+			}
 		}
 	});
 </script>

@@ -37,6 +37,8 @@
 
 	let isHovered: string = $state();
 	let emoji = $state(randomEmoji());
+	let lastReactionTime = $state(0);
+	let maxReactions = 50;
 
 	let { data } = $props();
 
@@ -234,6 +236,27 @@
 			return;
 		}
 
+		// check if the player has already reacted to the current session
+		const playerReactions = classReactionShape?.data?.filter(
+			(r) => r.player_id === data.currentPlayer.id && r.session_id === latestSession.id
+		);
+
+		if (playerReactions?.length >= maxReactions) {
+			toast.error('You can only react 50 times per session.');
+			return;
+		}
+
+		const currentTime = Date.now();
+		const timeSinceLastReaction = currentTime - lastReactionTime;
+
+		if (timeSinceLastReaction < 500) {
+			toast.error('You can only react once every 500ms.');
+			return;
+		}
+
+		lastReactionTime = currentTime;
+
+		// If we get here, either there are no previous reactions or the last one is old enough
 		classReaction.create({
 			id: uuidv4(),
 			playerId: data.currentPlayer.id,
@@ -247,8 +270,10 @@
 		if (
 			latestSession?.status !== 'revealed' &&
 			combinedPlayerGamesStore?.every((pg) => pg.activeVote)
-		)
+		) {
+			console.log('All players have voted. Reveal the session.');
 			reveal();
+		}
 	});
 </script>
 
