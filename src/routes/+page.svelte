@@ -122,21 +122,21 @@
 		</Dialog.Header>
 		<div class="grid gap-4 py-4">
 			<form method="POST" class="w-full space-y-6" use:enhance>
-				<Form.Field {form} name="name">
-					<Form.Control>
-						{#snippet children({ props })}
-							<Form.Label>Session Name</Form.Label>
-							<Input {...props} bind:value={$formData.name} />
-						{/snippet}
-					</Form.Control>
-					<Form.FieldErrors />
-				</Form.Field>
-
 				<Form.Field {form} name="playerName">
 					<Form.Control>
 						{#snippet children({ props })}
 							<Form.Label>Your Name</Form.Label>
 							<Input {...props} bind:value={$formData.playerName} />
+						{/snippet}
+					</Form.Control>
+					<Form.FieldErrors />
+				</Form.Field>
+
+				<Form.Field {form} name="name">
+					<Form.Control>
+						{#snippet children({ props })}
+							<Form.Label>Session Name</Form.Label>
+							<Input {...props} bind:value={$formData.name} />
 						{/snippet}
 					</Form.Control>
 					<Form.FieldErrors />

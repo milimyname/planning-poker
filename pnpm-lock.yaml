@@ -8,15 +8,9 @@ importers:
 
   .:
     dependencies:
-      '@electric-sql/client':
-        specifier: ^0.8.0
-        version: 0.8.0
       '@emoji-mart/data':
         specifier: ^1.2.1
         version: 1.2.1
-      '@radically-straightforward/caddy':
-        specifier: ^2.0.5
-        version: 2.0.5
       '@tanstack/svelte-query':
         specifier: ^5.66.11
         version: 5.66.11(svelte@5.20.5)
@@ -45,6 +39,9 @@ importers:
       '@flydotio/dockerfile':
         specifier: ^0.5.9
         version: 0.5.9
+      '@radically-straightforward/caddy':
+        specifier: ^2.0.5
+        version: 2.0.5
       '@sveltejs/adapter-auto':
         specifier: ^4.0.0
         version: 4.0.0(@sveltejs/kit@2.17.3(@sveltejs/vite-plugin-svelte@5.0.3(svelte@5.20.5)(vite@6.2.0(@types/node@22.13.8)(jiti@1.21.7)(yaml@2.7.0)))(svelte@5.20.5)(vite@6.2.0(@types/node@22.13.8)(jiti@1.21.7)(yaml@2.7.0)))
@@ -182,9 +179,6 @@ packages:
 
   '@drizzle-team/brocli@0.10.2':
     resolution: {integrity: sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w==}
-
-  '@electric-sql/client@0.8.0':
-    resolution: {integrity: sha512-M4VnuL2q2i1yhsjc9DEQtf4GEkXoaMjlfm0Lq7KqLDjj2nqPhbUTo8IeWhf3OJSZ7j+GyFd/YlLg4rlBDrE/6Q==}
 
   '@electric-sql/client@1.0.0-beta.3':
     resolution: {integrity: sha512-x3bzYlX+IRwBAILPxzu3ARkXzmrAQtVOuJCKCxlSqENuJa4zvLPF4f8vC6HMOiiJiHPAntJjfI3Hb0lrt2PTxA==}
@@ -2564,10 +2558,6 @@ snapshots:
     optional: true
 
   '@drizzle-team/brocli@0.10.2': {}
-
-  '@electric-sql/client@0.8.0':
-    optionalDependencies:
-      '@rollup/rollup-darwin-arm64': 4.34.9
 
   '@electric-sql/client@1.0.0-beta.3':
     optionalDependencies:

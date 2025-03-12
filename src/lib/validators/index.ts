@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { type Row } from '@electric-sql/client';
 
 export const gameSchema = z.object({
 	id: z.string().uuid(),
