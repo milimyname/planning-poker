@@ -15,14 +15,14 @@ COPY . .
 ENV NODE_ENV=production
 
 # Build arguments for secrets
-ARG VITE_ELECTRIC_URL
+ARG PUBLIC_ELECTRIC_URL
 ARG DATABASE_URL
 
 # Set build-time environment variables for the build process
-ENV VITE_ELECTRIC_URL=${VITE_ELECTRIC_URL}
+ENV PUBLIC_ELECTRIC_URL=${PUBLIC_ELECTRIC_URL}
 ENV DATABASE_URL=${DATABASE_URL}
 
-RUN pnpm generate && pnpm build
+RUN pnpm build
 
 # Remove dev dependencies
 RUN pnpm prune --prod

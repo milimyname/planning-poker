@@ -1,11 +1,12 @@
 import { browser } from '$app/environment';
-
-// export const BASE_URL = 'https://electric-on-fly-test-app-broken-tree-4950.fly.dev';
-
-// export const BASE_URL = import.meta.env.ELECTRIC_URL ?? `http://localhost:3000`;
+import { PUBLIC_ELECTRIC_URL } from '$env/static/public';
 
 // Caddy server
-export const BASE_URL = import.meta.env.ELECTRIC_URL ?? `http://localhost:3000`;
+// export const BASE_URL = PUBLIC_ELECTRIC_URL ?? `http://localhost:3001`;
+
+export const BASE_URL = PUBLIC_ELECTRIC_URL ?? `http://localhost:3000`;
+
+console.log('BASE_URL', BASE_URL);
 
 export const BASE_API_URL = browser
 	? `${window.location.origin}/api/shapes`
