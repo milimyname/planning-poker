@@ -1,4 +1,3 @@
-# Stage 1: Build the application
 FROM node:lts-alpine as builder
 
 ENV NODE_ENV=development
@@ -9,7 +8,6 @@ WORKDIR /app
 
 COPY package*.json pnpm-lock.yaml* ./
 
-# Install npm packages
 RUN pnpm i
 
 COPY . .
