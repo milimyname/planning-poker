@@ -115,11 +115,6 @@
 			return;
 		}
 
-		if ((currentUserVotes?.length ?? 0) > 0 || !latestSession) {
-			toast.error('Session is already completed.');
-			return;
-		}
-
 		// if estimate is already casted, show a toast message
 		if (
 			(currentUserVotes[0]?.estimate === Number(estimate) ||
@@ -247,6 +242,14 @@
 			sessionId: latestSession.id
 		});
 	}
+
+	$effect(() => {
+		if (
+			latestSession?.status !== 'revealed' &&
+			combinedPlayerGamesStore?.every((pg) => pg.activeVote)
+		)
+			reveal();
+	});
 </script>
 
 <div class="h-screen w-full place-content-center pb-20">
