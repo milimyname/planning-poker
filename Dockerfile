@@ -20,6 +20,10 @@ ENV NODE_ENV=production
 ARG VITE_ELECTRIC_URL
 ARG DATABASE_URL
 
+# Set build-time environment variables for the build process
+ENV VITE_ELECTRIC_URL=${VITE_ELECTRIC_URL}
+ENV DATABASE_URL=${DATABASE_URL}
+
 RUN pnpm generate && pnpm build
 
 # Remove dev dependencies
@@ -35,7 +39,5 @@ COPY --from=builder /app .
 
 ENV PORT=4000
 ENV NODE_ENV=production
-ENV VITE_ELECTRIC_URL=${VITE_ELECTRIC_URL}
-ENV DATABASE_URL=${DATABASE_URL}
 
 CMD ["node", "./build"]
