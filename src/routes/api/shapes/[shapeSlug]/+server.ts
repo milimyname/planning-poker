@@ -1,7 +1,7 @@
 import { db } from '$lib/server/db';
 import { games, players, playerInGames, votes, sessions, reactions } from '$lib/server/schema';
 import { json } from '@sveltejs/kit';
-import { eq, ne } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 const shapeMap = {
 	games,
@@ -64,16 +64,11 @@ export const DELETE = async ({ params, request }) => {
 	try {
 		await db.delete(shape);
 
-		let result;
-
-		console.log('shapeSlug:', shapeSlug, body);
+		let result: any;
 
 		await db.transaction(async (tx) => {
-			[result] = await tx.insert(shape).values(body).returning();
-
 			switch (shapeSlug) {
 				case 'reactions':
-					// Clear all reactions in a session
 					if (!body.sessionId)
 						throw new Error('sessionId is required for clearing all reactions in a session');
 
@@ -85,9 +80,8 @@ export const DELETE = async ({ params, request }) => {
 					);
 
 					break;
-				default:
-					[result] = await tx.delete(shape);
 			}
+			[result] = await tx.insert(shape).values(body).returning();
 		});
 
 		return json({ message: `All ${shapeSlug} deleted`, data: result }, { status: 200 });

@@ -1,5 +1,5 @@
 {
-	"name": "sveltekit-tanstack-electric",
+	"name": "planning-poker",
 	"version": "0.0.1",
 	"private": true,
 	"scripts": {
@@ -10,11 +10,9 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"lint": "prettier --check . && eslint .",
 		"format": "prettier --write .",
-		"backend:up": "PROJECT_NAME=sveltekit-tanstack-electric pnpm example-backend:up && pnpm migrate",
-		"backend:down": "PROJECT_NAME=sveltekit-tanstack-electric pnpm example-backend:down",
+		"backend:up": "dotenv -e .env.dev -- docker compose -f ./.support/docker-compose.yml up -d && pnpm migrate",
+		"backend:down": "dotenv  -e .env.dev -- docker compose -f .support/docker-compose.yml down --volumes",
 		"backend:clear": "pnpm backend:down && pnpm backend:up",
-		"example-backend:up": "dotenv -e .env.dev -- docker compose -f ./.support/docker-compose.yml up -d",
-		"example-backend:down": "dotenv  -e .env.dev -- docker compose -f .support/docker-compose.yml down --volumes",
 		"generate": "drizzle-kit generate",
 		"migrate": "drizzle-kit migrate",
 		"prepare": "husky",
