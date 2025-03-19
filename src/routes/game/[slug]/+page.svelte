@@ -87,7 +87,7 @@
 		);
 	});
 
-	let cards = $derived.by(() => [currentGame?.game?.cards?.split(','), emoji].flat());
+	let cards = $derived.by(() => [1, 2, 3, 5, 8, 13, 21, emoji].flat());
 
 	let isCreator = $derived.by(() => currentGame?.player_id === data.currentPlayer.id);
 
@@ -387,27 +387,29 @@
 			</div>
 		</div>
 
-		<div class="grid place-content-center">
-			<div class="flex gap-5 py-10">
-				{#each [1, 2, 3, 5, 8, 13, 21] as card}
-					<Card.Root
-						onclick={() =>
-							emoji !== card ? handleVote(card, 'basic') : handleVote(emoji, 'emoji')}
-						class={cn(
-							'cursor-pointer transition-transform hover:scale-105 active:scale-95 active:shadow',
-							currentUserVotes?.length &&
-								(currentUserVotes[0].estimate === Number(card) ||
-									currentUserVotes[0].emoji === card) &&
-								((latestSession?.status === 'revealed' &&
-									'-translate-y-2 bg-green-500 text-white') ||
-									(latestSession?.status !== 'completed' &&
-										'-translate-y-2 animate-bounce bg-green-500 text-white'))
-						)}
-					>
-						<Card.Content>{card}</Card.Content>
-					</Card.Root>
-				{/each}
+		{#if cards}
+			<div class="grid place-content-center">
+				<div class="flex gap-5 py-10">
+					{#each cards as card}
+						<Card.Root
+							onclick={() =>
+								emoji !== card ? handleVote(card, 'basic') : handleVote(emoji, 'emoji')}
+							class={cn(
+								'cursor-pointer transition-transform hover:scale-105 active:scale-95 active:shadow',
+								currentUserVotes?.length &&
+									(currentUserVotes[0].estimate === Number(card) ||
+										currentUserVotes[0].emoji === card) &&
+									((latestSession?.status === 'revealed' &&
+										'-translate-y-2 bg-green-500 text-white') ||
+										(latestSession?.status !== 'completed' &&
+											'-translate-y-2 animate-bounce bg-green-500 text-white'))
+							)}
+						>
+							<Card.Content>{card}</Card.Content>
+						</Card.Root>
+					{/each}
+				</div>
 			</div>
-		</div>
+		{/if}
 	{/if}
 </div>
